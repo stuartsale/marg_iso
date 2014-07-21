@@ -1,0 +1,16 @@
+marg-iso - A program to estimate P(s,A|data) for stars
+============================================================
+
+Author - Stuart Sale
+
+Intro
+------------
+
+This is cython based code to estimate the posterior P(s,A|data) for stars by fitting a Gaussian mixture model
+
+
+Comments
+------------
+More documentation to follow in due course.
+
+
