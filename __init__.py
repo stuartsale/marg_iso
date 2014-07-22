@@ -56,9 +56,9 @@ class star_posterior:
     def set_lastprob(self):
         A=np.exp(self.last_logA)
         self.last_prob=0.
-        self.last_prob=-(np.power(self.r-(self.last_iso_obj.r0+self.last_dist_mod+self.last_iso_obj.vr*A+self.last_iso_obj.ur*A*A) ,2)/self.dr
-                        +np.power(self.i-(self.last_iso_obj.i0+self.last_dist_mod+self.last_iso_obj.vi*A+self.last_iso_obj.ui*A*A) ,2)/self.di
-                        +np.power(self.ha-(self.last_iso_obj.ha0+self.last_dist_mod+self.last_iso_obj.vha*A+self.last_iso_obj.uha*A*A) ,2)/self.dha )
+        self.last_prob=-(np.power(self.r-(self.last_iso_obj.r0+self.last_dist_mod+self.last_iso_obj.vr*A+self.last_iso_obj.ur*A*A) ,2)/(2*self.dr*self.dr)
+                        +np.power(self.i-(self.last_iso_obj.i0+self.last_dist_mod+self.last_iso_obj.vi*A+self.last_iso_obj.ui*A*A) ,2)/(2*self.di*self.di)
+                        +np.power(self.ha-(self.last_iso_obj.ha0+self.last_dist_mod+self.last_iso_obj.vha*A+self.last_iso_obj.uha*A*A) ,2)/(2*self.dha*self.dha ))
             
 
     #  find likelihood of test param set
@@ -66,19 +66,19 @@ class star_posterior:
     def set_testprob(self):
         A=np.exp(self.test_logA)
         self.test_prob=0.
-        self.test_prob=-(np.power(self.r-(self.test_iso_obj.r0+self.test_dist_mod+self.test_iso_obj.vr*A+self.test_iso_obj.ur*A*A) ,2)/self.dr
-                        +np.power(self.i-(self.test_iso_obj.i0+self.test_dist_mod+self.test_iso_obj.vi*A+self.test_iso_obj.ui*A*A) ,2)/self.di
-                        +np.power(self.ha-(self.test_iso_obj.ha0+self.test_dist_mod+self.test_iso_obj.vha*A+self.test_iso_obj.uha*A*A) ,2)/self.dha )
+        self.test_prob=-(np.power(self.r-(self.test_iso_obj.r0+self.test_dist_mod+self.test_iso_obj.vr*A+self.test_iso_obj.ur*A*A) ,2)/(2*self.dr*self.dr)
+                        +np.power(self.i-(self.test_iso_obj.i0+self.test_dist_mod+self.test_iso_obj.vi*A+self.test_iso_obj.ui*A*A) ,2)/(2*self.di*self.di)
+                        +np.power(self.ha-(self.test_iso_obj.ha0+self.test_dist_mod+self.test_iso_obj.vha*A+self.test_iso_obj.uha*A*A) ,2)/(2*self.dha*self.dha) )
 
     # find prior prob of last param set
     
     def set_lastprior(self):
-        self.last_prior=np.log(self.last_iso_obj.Jac)
+        self.last_prior=np.log(self.last_iso_obj.Jac) + 3*0.4605*(self.last_dist_mod+5) + self.last_logA
         
     # find prior prob of test param set
     
     def set_testprior(self):
-        self.test_prior=np.log(self.test_iso_obj.Jac)
+        self.test_prior=np.log(self.test_iso_obj.Jac) + 3*0.4605*(self.test_dist_mod+5) + self.test_logA
     
     # MCMC sampler
     
