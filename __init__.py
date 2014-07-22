@@ -3,6 +3,8 @@
 import numpy as np
 #import iso_lib as il
 import sklearn as sk
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 
 # Class to contain star's data, chain, etc
@@ -102,7 +104,17 @@ class star_posterior:
                 self.logg_chain[it/thin]=self.last_logg
                 self.feh_chain[it/thin]=self.last_feh
                 self.dist_mod_chain[it/thin]=self.last_dist_mod
-                self.logA_chain[it/thin]=self.last_logA              
+                self.logA_chain[it/thin]=self.last_logA  
+                
+
+    # plot the MCMC sample on the ln(s) ln(A) plane
+    
+    def plot_MCMCsample(self):
+        fig=plt.figure()
+        ax1=fig.add_subplot(111)
+        
+        ax1.scatter(self.dist_mod_chain, self.logA_chain)
+        plt.show()
     
     # Fit Gaussians
     
