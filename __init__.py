@@ -127,6 +127,9 @@ class star_posterior:
                 self.dist_mod_chain[it/thin]=self.last_dist_mod
                 self.logA_chain[it/thin]=self.last_logA 
                 
+                self.last_prob=self.test_prob
+                self.last_prior=self.test_prior
+                
                 if it!=0:
                     print self.accept*1./(it+1)
                 
