@@ -32,7 +32,7 @@ class star_posterior:
         self.last_logg=4.5
         self.last_feh=0.
         self.last_dist_mod=10.
-        self.last_logA=1.
+        self.last_logA=0.
         
         self.last_iso_obj=self.isochrones.query(self.last_feh, self.last_Teff, self.last_logg)
         
@@ -50,19 +50,21 @@ class star_posterior:
     # find likelihood of last param set
     
     def set_lastprob(self):
-        self.last_prob=0.    
-#        self.last_prob=(np.power(self.r- ,2)
-#                        +np.power(self.i- ,2)
-#                        +np.power(self.ha- ,2) )
+        A=np.exp(self.last_logA)
+        self.last_prob=0.
+        self.last_prob=-(np.power(self.r-(self.last_iso_obj.r0+self.last_dist_mod+self.last_iso_obj.vr*A+self.last_iso_obj.ur*A*A) ,2)/self.dr
+                        +np.power(self.i-(self.last_iso_obj.i0+self.last_dist_mod+self.last_iso_obj.vi*A+self.last_iso_obj.ui*A*A) ,2)/self.di
+                        +np.power(self.ha-(self.last_iso_obj.ha0+self.last_dist_mod+self.last_iso_obj.vha*A+self.last_iso_obj.uha*A*A) ,2)/self.dha )
             
 
     #  find likelihood of test param set
 
     def set_testprob(self):
+        A=np.exp(self.test_logA)
         self.test_prob=0.
-#        self.last_prob=(np.power(self.r- ,2)
-#                        +np.power(self.i- ,2)
-#                        +np.power(self.ha- ,2) )
+        self.test_prob=-(np.power(self.r-(self.test_iso_obj.r0+self.test_dist_mod+self.test_iso_obj.vr*A+self.test_iso_obj.ur*A*A) ,2)/self.dr
+                        +np.power(self.i-(self.test_iso_obj.i0+self.test_dist_mod+self.test_iso_obj.vi*A+self.test_iso_obj.ui*A*A) ,2)/self.di
+                        +np.power(self.ha-(self.test_iso_obj.ha0+self.test_dist_mod+self.test_iso_obj.vha*A+self.test_iso_obj.uha*A*A) ,2)/self.dha )
 
     # find prior prob of last param set
     
@@ -80,16 +82,18 @@ class star_posterior:
     
         self.init_chain(int(iterations/thin))
         
+        self.accept=0
+        
         for it in range(iterations):
             # Set test params
             
-            test_Teff=3.8
-            test_logg=4.5
-            test_feh=0.
-            test_dist_mod=10.
-            test_logA=1.
+            self.test_Teff=self.last_Teff + np.random.normal()*Teff_prop
+            self.test_logg=self.last_logg + np.random.normal()*logg_prop
+            self.test_feh=self.last_feh + np.random.normal()*feh_prop
+            self.test_dist_mod=self.last_dist_mod + np.random.normal()*dist_mod_prop
+            self.test_logA=self.last_logA + np.random.normal()*logA_prop
             
-            test_iso_obj=self.isochrones.query(test_feh, test_Teff, test_logg)    
+            self.test_iso_obj=self.isochrones.query(self.test_feh, self.test_Teff, self.test_logg)    
             
             # get probs
             
@@ -101,13 +105,18 @@ class star_posterior:
             threshold=np.log(np.random.uniform())
             
             if (self.test_prob-self.last_prob+self.test_prior-self.last_prior)>=threshold:
-                self.last_Teff=test_Teff
-                self.last_logg=test_logg
-                self.last_feh=test_feh
-                self.last_dist_mod=test_dist_mod
-                self.last_logA=test_logA
+                self.last_Teff=self.test_Teff
+                self.last_logg=self.test_logg
+                self.last_feh=self.test_feh
+                self.last_dist_mod=self.test_dist_mod
+                self.last_logA=self.test_logA
                         
-                self.last_iso_obj=test_iso_obj
+                self.last_iso_obj=self.test_iso_obj
+                
+                self.accept+=1
+                
+#            else:
+#                print self.test_prob, self.last_prob
             
             # store in chain 
             
@@ -116,7 +125,10 @@ class star_posterior:
                 self.logg_chain[it/thin]=self.last_logg
                 self.feh_chain[it/thin]=self.last_feh
                 self.dist_mod_chain[it/thin]=self.last_dist_mod
-                self.logA_chain[it/thin]=self.last_logA  
+                self.logA_chain[it/thin]=self.last_logA 
+                
+                if it!=0:
+                    print self.accept*1./(it+1)
                 
 
     # plot the MCMC sample on the ln(s) ln(A) plane
@@ -125,7 +137,7 @@ class star_posterior:
         fig=plt.figure()
         ax1=fig.add_subplot(111)
         
-        ax1.scatter(self.dist_mod_chain, self.logA_chain)
+        ax1.scatter(self.dist_mod_chain, self.logA_chain, marker='.')
         plt.show()
     
     # Fit Gaussians
