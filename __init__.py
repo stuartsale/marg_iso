@@ -29,7 +29,7 @@ class star_posterior:
     
     def init_chain(self, chain_length):
         self.last_Teff=3.8
-        self.last_logg=4.5
+        self.last_logg=4.3
         self.last_feh=0.
         self.last_dist_mod=10.
         self.last_logA=0.
@@ -44,6 +44,10 @@ class star_posterior:
         self.feh_chain=np.zeros(chain_length)
         self.dist_mod_chain=np.zeros(chain_length)
         self.logA_chain=np.zeros(chain_length)
+
+        self.prob_chain=np.zeros(chain_length)
+        self.prior_chain=np.zeros(chain_length)
+        self.Jac_chain=np.zeros(chain_length)
         
         
         
@@ -69,12 +73,12 @@ class star_posterior:
     # find prior prob of last param set
     
     def set_lastprior(self):
-        self.last_prior=0. 
+        self.last_prior=np.log(self.last_iso_obj.Jac)
         
     # find prior prob of test param set
     
     def set_testprior(self):
-        self.test_prior=0. 
+        self.test_prior=np.log(self.test_iso_obj.Jac)
     
     # MCMC sampler
     
@@ -93,7 +97,10 @@ class star_posterior:
             self.test_dist_mod=self.last_dist_mod + np.random.normal()*dist_mod_prop
             self.test_logA=self.last_logA + np.random.normal()*logA_prop
             
-            self.test_iso_obj=self.isochrones.query(self.test_feh, self.test_Teff, self.test_logg)    
+            try:
+                self.test_iso_obj=self.isochrones.query(self.test_feh, self.test_Teff, self.test_logg)    
+            except IndexError:
+                continue
             
             # get probs
             
@@ -105,6 +112,9 @@ class star_posterior:
             threshold=np.log(np.random.uniform())
             
             if (self.test_prob-self.last_prob+self.test_prior-self.last_prior)>=threshold:
+                self.last_prob=self.test_prob
+                self.last_prior=self.test_prior
+
                 self.last_Teff=self.test_Teff
                 self.last_logg=self.test_logg
                 self.last_feh=self.test_feh
@@ -126,9 +136,12 @@ class star_posterior:
                 self.feh_chain[it/thin]=self.last_feh
                 self.dist_mod_chain[it/thin]=self.last_dist_mod
                 self.logA_chain[it/thin]=self.last_logA 
-                
-                self.last_prob=self.test_prob
-                self.last_prior=self.test_prior
+
+                self.prob_chain[it/thin]=self.last_prob 
+                self.prior_chain[it/thin]=self.last_prior 
+                self.Jac_chain[it/thin]=self.last_iso_obj.Jac 
+               
+
                 
                 if it!=0:
                     print self.accept*1./(it+1)
@@ -142,6 +155,10 @@ class star_posterior:
         
         ax1.scatter(self.dist_mod_chain, self.logA_chain, marker='.')
         plt.show()
+        
+    def chain_dump(self, filename):
+        X=np.array( [np.arange(0,len(self.Teff_chain)), self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, self.prob_chain, self.prior_chain, self.Jac_chain ]).T
+        np.savetxt(filename, X, header="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tlike\tprior\tJac\n" )
     
     # Fit Gaussians
     
