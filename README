@@ -6,7 +6,7 @@ Author - Stuart Sale
 Intro
 ------------
 
-This is cython based code to estimate the posterior P(s,A|data) for stars by fitting a Gaussian mixture model
+This is python based module to estimate the posterior P(s,A|data) for stars by fitting a Gaussian mixture model
 
 
 Comments
