@@ -32,7 +32,7 @@ class star_posterior:
         self.last_dist_mod=10.
         self.last_logA=1.
         
-        self.last_iso_obj=isochrones.query(self.last_feh, self.last_Teff, self.last_logg)
+        self.last_iso_obj=self.isochrones.query(self.last_feh, self.last_Teff, self.last_logg)
         
         self.set_lastprob()
         
@@ -63,7 +63,7 @@ class star_posterior:
     
     # MCMC sampler
     
-    def MCMC_Metropolis(self, iterations=10000, thin=1, Teff_prop, logg_prop, feh_prop, dist_mod_prop, logA_prop):
+    def MCMC_Metropolis(self, Teff_prop, logg_prop, feh_prop, dist_mod_prop, logA_prop, iterations=10000, thin=1):
     
         self.init_chain(int(iterations/thin))
         
@@ -76,11 +76,11 @@ class star_posterior:
             test_dist_mod=10.
             test_logA=1.
             
-            test_iso_obj=isochrones.query(self.test_feh, self.test_Teff, self.test_logg)    
+            test_iso_obj=self.isochrones.query(test_feh, test_Teff, test_logg)    
             
             # get probs
             
-            set_testprob()
+            self.set_testprob()
             
             # accept/reject
             
@@ -102,9 +102,7 @@ class star_posterior:
                 self.logg_chain[it/thin]=self.last_logg
                 self.feh_chain[it/thin]=self.last_feh
                 self.dist_mod_chain[it/thin]=self.last_dist_mod
-                self.logA_chain[it/thin]=self.last_logA
-                
-                print it
+                self.logA_chain[it/thin]=self.last_logA              
     
     # Fit Gaussians
     
