@@ -37,6 +37,7 @@ class star_posterior:
         self.last_iso_obj=self.isochrones.query(self.last_feh, self.last_Teff, self.last_logg)
         
         self.set_lastprob()
+        self.set_lastprior()
         
         self.Teff_chain=np.zeros(chain_length)
         self.logg_chain=np.zeros(chain_length)
@@ -46,7 +47,7 @@ class star_posterior:
         
         
         
-    # find probability of last param set
+    # find likelihood of last param set
     
     def set_lastprob(self):
         self.last_prob=0.    
@@ -55,13 +56,23 @@ class star_posterior:
 #                        +np.power(self.ha- ,2) )
             
 
-    #  find probability of test param set
+    #  find likelihood of test param set
 
     def set_testprob(self):
         self.test_prob=0.
 #        self.last_prob=(np.power(self.r- ,2)
 #                        +np.power(self.i- ,2)
 #                        +np.power(self.ha- ,2) )
+
+    # find prior prob of last param set
+    
+    def set_lastprior(self):
+        self.last_prior=0. 
+        
+    # find prior prob of test param set
+    
+    def set_testprior(self):
+        self.test_prior=0. 
     
     # MCMC sampler
     
@@ -83,12 +94,13 @@ class star_posterior:
             # get probs
             
             self.set_testprob()
+            self.set_testprior()
             
             # accept/reject
             
             threshold=np.log(np.random.uniform())
             
-            if (self.test_prob-self.last_prob)>=threshold:
+            if (self.test_prob-self.last_prob+self.test_prior-self.last_prior)>=threshold:
                 self.last_Teff=test_Teff
                 self.last_logg=test_logg
                 self.last_feh=test_feh
