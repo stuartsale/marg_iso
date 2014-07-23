@@ -242,11 +242,13 @@ class star_posterior:
         for i in range((iterations-burn_in)/thin):
             pos, last_prob, state=sampler.sample(pos, last_prob, state, iterations=thin, storechain=False)       # proper run
             
-        
-     
-    
-  
-    
+            self.feh_chain[i*N_walkers:(i+1)*N_walkers]=pos[:,0]
+            self.Teff_chain[i*N_walkers:(i+1)*N_walkers]=pos[:,1]
+            self.logg_chain[i*N_walkers:(i+1)*N_walkers]=pos[:,2]
+            self.dist_mod_chain[i*N_walkers:(i+1)*N_walkers]=pos[:,3]
+            self.logA_chain[i*N_walkers:(i+1)*N_walkers]=pos[:,4]
+            
+            self.prob_chain[i*N_walkers:(i+1)*N_walkers]=  last_prob  
 
 
                 
