@@ -49,6 +49,10 @@ class star_posterior:
         self.prior_chain=np.zeros(chain_length)
         self.Jac_chain=np.zeros(chain_length)
         
+        self.r_chain=np.zeros(chain_length)
+        self.i_chain=np.zeros(chain_length)
+        self.ha_chain=np.zeros(chain_length)
+        
         
         
     # find likelihood of last param set
@@ -70,15 +74,18 @@ class star_posterior:
                         +np.power(self.i-(self.test_iso_obj.i0+self.test_dist_mod+self.test_iso_obj.vi*A+self.test_iso_obj.ui*A*A) ,2)/(2*self.di*self.di)
                         +np.power(self.ha-(self.test_iso_obj.ha0+self.test_dist_mod+self.test_iso_obj.vha*A+self.test_iso_obj.uha*A*A) ,2)/(2*self.dha*self.dha) )
 
+
     # find prior prob of last param set
     
     def set_lastprior(self):
-        self.last_prior=np.log(self.last_iso_obj.Jac) + 3*0.4605*(self.last_dist_mod+5) + self.last_logA
+        dist=pow(10., self.last_dist_mod/5.+1.)
+        self.last_prior=np.log(self.last_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.last_iso_obj.Mi) + 2.3026*self.last_iso_obj.logage + self.last_logA #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.
         
     # find prior prob of test param set
     
     def set_testprior(self):
-        self.test_prior=np.log(self.test_iso_obj.Jac) + 3*0.4605*(self.test_dist_mod+5) + self.test_logA
+        dist=pow(10., self.test_dist_mod/5.+1.)
+        self.test_prior=np.log(self.test_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.test_iso_obj.Mi) + 2.3026*self.test_iso_obj.logage + self.test_logA #3*0.4605*(self.test_dist_mod+5) + self.test_logA - pow(10., self.test_dist_mod/5.+1.)/2500.
     
     # MCMC sampler
     
@@ -139,11 +146,14 @@ class star_posterior:
 
                 self.prob_chain[it/thin]=self.last_prob 
                 self.prior_chain[it/thin]=self.last_prior 
-                self.Jac_chain[it/thin]=self.last_iso_obj.Jac 
-               
-
+                self.Jac_chain[it/thin]=self.last_iso_obj.Jac
                 
-                if it!=0:
+                A=np.exp(self.last_logA)                
+                self.r_chain[it/thin]=self.last_iso_obj.r0+self.last_dist_mod+self.last_iso_obj.vr*A+self.last_iso_obj.ur*A*A
+                self.i_chain[it/thin]=self.last_iso_obj.i0+self.last_dist_mod+self.last_iso_obj.vi*A+self.last_iso_obj.ui*A*A
+                self.ha_chain[it/thin]=self.last_iso_obj.ha0+self.last_dist_mod+self.last_iso_obj.vha*A+self.last_iso_obj.uha*A*A
+                
+                if it!=0 and it%10000==0:
                     print self.accept*1./(it+1)
                 
 
@@ -157,8 +167,8 @@ class star_posterior:
         plt.show()
         
     def chain_dump(self, filename):
-        X=np.array( [np.arange(0,len(self.Teff_chain)), self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, self.prob_chain, self.prior_chain, self.Jac_chain ]).T
-        np.savetxt(filename, X, header="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tlike\tprior\tJac\n" )
+        X=np.array( [np.arange(0,len(self.Teff_chain)), self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.r_chain, self.i_chain, self.ha_chain ]).T
+        np.savetxt(filename, X, header="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tlike\tprior\tJac\tr\ti\tha\n" )
     
     # Fit Gaussians
     
