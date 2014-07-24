@@ -241,7 +241,7 @@ class star_posterior:
         self.itnum_chain=np.zeros(chain_length)            
             
             
-    def emcee_run(self, iterations=10000, thin=10, burn_in=1000, N_walkers=50, cluster_plot=False):
+    def emcee_run(self, iterations=10000, thin=10, burn_in=2000, N_walkers=50, cluster_plot=False):
     
         self.emcee_init(N_walkers, (iterations-burn_in)/thin*N_walkers)
     
@@ -250,9 +250,10 @@ class star_posterior:
         pos, last_prob, state = sampler.run_mcmc(self.start_params, burn_in)     # Burn-in
         sampler.reset()
         
-        dbscan = sk_c.DBSCAN(eps=0.1)
+        dbscan = sk_c.DBSCAN(eps=0.05)
         pos, last_prob, state = sampler.run_mcmc(pos, 10, rstate0=state, lnprob0=last_prob)     # pruning set
         dbscan.fit(sampler.flatchain[:,1:2])
+        labels=dbscan.labels_.astype(np.int)
         
         if cluster_plot:
             colors = np.array([x for x in 'bgrcmykbgrcmykbgrcmykbgrcmyk'])
@@ -260,8 +261,23 @@ class star_posterior:
             fig=plt.figure()
             ax1=fig.add_subplot(111)
             
-            ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color=colors[dbscan.labels_.astype(np.int)].tolist(),)
+            ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color=colors[labels].tolist(),)
             plt.show()
+        
+        mean_ln_prob=np.mean(sampler.flatlnprobability)
+        cl_list=[]
+        weights_list=[]
+        weights_sum=0
+        for cl_it in range(np.max(labels)+1):
+            cl_list.append(posterior_cluster(sampler.flatchain[labels==cl_it,1],sampler.flatchain[labels==cl_it,2], sampler.flatlnprobability[labels==cl_it]-mean_ln_prob))
+            weights_sum+= cl_list[-1].weight
+            weights_list.append(cl_list[-1].weight)
+        print weights_sum
+        
+        for i in range(N_walkers):
+            cluster=np.random.choice(np.max(labels)+1, p=weights_list/np.sum(weights_list))
+            print cluster
+            
 
 
         
@@ -317,3 +333,21 @@ class star_posterior:
     # Fit Gaussians
     
 #    def gauss_fit(self):
+
+class posterior_cluster:
+
+    def __init__(self, teffs, loggs, probs):
+        self.teffs=teffs
+        self.loggs=loggs
+        self.probs=probs
+        
+        self.set_weight()
+        
+        print np.mean(self.teffs), np.mean(self.loggs), self.weight
+        
+    def set_weight(self, weight=None):
+        if weight:
+            self.weight=weight
+        else:
+            self.weight=np.mean(np.exp(self.probs))*min(np.std(self.teffs),0.01)*min(np.std(self.loggs),0.01)
+                     
