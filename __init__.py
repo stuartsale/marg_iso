@@ -269,14 +269,16 @@ class star_posterior:
         weights_list=[]
         weights_sum=0
         for cl_it in range(np.max(labels)+1):
-            cl_list.append(posterior_cluster(sampler.flatchain[labels==cl_it,1],sampler.flatchain[labels==cl_it,2], sampler.flatlnprobability[labels==cl_it]-mean_ln_prob))
+            cl_list.append(posterior_cluster(sampler.flatchain[labels==cl_it,0],sampler.flatchain[labels==cl_it,1],sampler.flatchain[labels==cl_it,2],
+                        sampler.flatchain[labels==cl_it,3],sampler.flatchain[labels==cl_it,4],  sampler.flatlnprobability[labels==cl_it]-mean_ln_prob))
             weights_sum+= cl_list[-1].weight
             weights_list.append(cl_list[-1].weight)
         print weights_sum
         
         for i in range(N_walkers):
             cluster=np.random.choice(np.max(labels)+1, p=weights_list/np.sum(weights_list))
-            print cluster
+            index=int( np.random.uniform()*len(cl_list[cluster]) )
+            print cluster, index
             
 
 
@@ -336,7 +338,7 @@ class star_posterior:
 
 class posterior_cluster:
 
-    def __init__(self, teffs, loggs, probs):
+    def __init__(self, fehs, teffs, loggs, distmods, logAs, probs):
         self.teffs=teffs
         self.loggs=loggs
         self.probs=probs
@@ -344,6 +346,9 @@ class posterior_cluster:
         self.set_weight()
         
         print np.mean(self.teffs), np.mean(self.loggs), self.weight
+        
+    def __len__(self):
+        return self.teffs.size
         
     def set_weight(self, weight=None):
         if weight:
