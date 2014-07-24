@@ -17,10 +17,10 @@ def emcee_prob(params, star):
     try:
         iso_obj=star.isochrones.query(params[0], params[1], params[2])
     except IndexError:
-        return -1E9
+        return -np.inf
         
     if iso_obj.Jac==0:
-        return -1E9
+        return -np.inf
         
     else:
         return -(np.power(star.r-(iso_obj.r0+params[3]+iso_obj.vr*A+iso_obj.ur*A*A) ,2)/(2*star.dr*star.dr)
@@ -240,7 +240,7 @@ class star_posterior:
         self.itnum_chain=np.zeros(chain_length)            
             
             
-    def emcee_run(self, iterations=10000, thin=10, burn_in=1000, N_walkers=30):
+    def emcee_run(self, iterations=10000, thin=10, burn_in=1000, N_walkers=50):
     
         self.emcee_init(N_walkers, (iterations-burn_in)/thin*N_walkers)
     
