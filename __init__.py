@@ -3,6 +3,7 @@
 import numpy as np
 #import iso_lib as il
 import sklearn as sk
+import sklearn.cluster as sk_c
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import emcee
@@ -240,13 +241,30 @@ class star_posterior:
         self.itnum_chain=np.zeros(chain_length)            
             
             
-    def emcee_run(self, iterations=10000, thin=10, burn_in=1000, N_walkers=50):
+    def emcee_run(self, iterations=10000, thin=10, burn_in=1000, N_walkers=50, cluster_plot=False):
     
         self.emcee_init(N_walkers, (iterations-burn_in)/thin*N_walkers)
     
         sampler = emcee.EnsembleSampler(N_walkers, 5, emcee_prob, args=[self])
         
         pos, last_prob, state = sampler.run_mcmc(self.start_params, burn_in)     # Burn-in
+        sampler.reset()
+        
+        dbscan = sk_c.DBSCAN(eps=0.1)
+        pos, last_prob, state = sampler.run_mcmc(pos, 10, rstate0=state, lnprob0=last_prob)     # pruning set
+        dbscan.fit(sampler.flatchain[:,1:2])
+        
+        if cluster_plot:
+            colors = np.array([x for x in 'bgrcmykbgrcmykbgrcmykbgrcmyk'])
+            colors = np.hstack([colors] * 20)
+            fig=plt.figure()
+            ax1=fig.add_subplot(111)
+            
+            ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color=colors[dbscan.labels_.astype(np.int)].tolist(),)
+            plt.show()
+
+
+        
         sampler.reset()
 
         
@@ -274,8 +292,10 @@ class star_posterior:
                         
                         
                     except IndexError:
-                        return -1E9    
-
+                        print -1E9  
+                        
+        for n in range(N_walkers):   
+            print n, np.mean(self.prob_chain[n::N_walkers]), np.mean(self.Teff_chain[n::N_walkers]),  np.mean(self.logg_chain[n::N_walkers]), np.std(self.Teff_chain[n::N_walkers]),  np.std(self.logg_chain[n::N_walkers])
 
                 
     # ==============================================================
