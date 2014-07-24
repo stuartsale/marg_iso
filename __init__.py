@@ -19,10 +19,14 @@ def emcee_prob(params, star):
     except IndexError:
         return -1E9
         
-    return -(np.power(star.r-(iso_obj.r0+params[3]+iso_obj.vr*A+iso_obj.ur*A*A) ,2)/(2*star.dr*star.dr)
-            +np.power(star.i-(iso_obj.i0+params[3]+iso_obj.vi*A+iso_obj.ui*A*A) ,2)/(2*star.di*star.di)
-            +np.power(star.ha-(iso_obj.ha0+params[3]+iso_obj.vha*A+iso_obj.uha*A*A) ,2)/(2*star.dha*star.dha) \
-            +np.log(iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(iso_obj.Mi) + 2.3026*iso_obj.logage + param[4] #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.  
+    if iso_obj.Jac==0:
+        return -1E9
+        
+    else:
+        return -(np.power(star.r-(iso_obj.r0+params[3]+iso_obj.vr*A+iso_obj.ur*A*A) ,2)/(2*star.dr*star.dr)
+                +np.power(star.i-(iso_obj.i0+params[3]+iso_obj.vi*A+iso_obj.ui*A*A) ,2)/(2*star.di*star.di)
+                +np.power(star.ha-(iso_obj.ha0+params[3]+iso_obj.vha*A+iso_obj.uha*A*A) ,2)/(2*star.dha*star.dha) ) \
+                +np.log(iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(iso_obj.Mi) + 2.3026*iso_obj.logage + params[4] #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.  
             
 
 # Class to contain star's data, chain, etc            
@@ -70,6 +74,8 @@ class star_posterior:
         self.r_chain=np.zeros(chain_length)
         self.i_chain=np.zeros(chain_length)
         self.ha_chain=np.zeros(chain_length)
+        
+        self.itnum_chain=np.zeros(chain_length)                    
         
         
         
@@ -171,6 +177,8 @@ class star_posterior:
                 self.i_chain[it/thin]=self.last_iso_obj.i0+self.last_dist_mod+self.last_iso_obj.vi*A+self.last_iso_obj.ui*A*A
                 self.ha_chain[it/thin]=self.last_iso_obj.ha0+self.last_dist_mod+self.last_iso_obj.vha*A+self.last_iso_obj.uha*A*A
                 
+                self.itnum_chain[it/thin]=it
+                
                 if it!=0 and it%10000==0:
                     print self.accept*1./(it+1)
                     
@@ -182,7 +190,7 @@ class star_posterior:
     
         self.start_params=np.zeros([N_walkers,5])
     
-        self.guess_set=[]
+        guess_set=[]
         guess_set.append([0.,3.663 ,4.57 ,0.,0.]);	#K4V
         guess_set.append([0.,3.672 ,4.56 ,0.,0.]);	#K3V
         guess_set.append([0.,3.686 ,4.55 ,0.,0.]);	#K2V
@@ -201,11 +209,11 @@ class star_posterior:
         guess_set.append([0.,3.949 ,4.20 ,0.,0.]);	#A3V
         guess_set.append([0.,3.961 ,4.16 ,0.,0.]);	#A2V
         
-        guess_set.append([0.,3.763 ,3.20 ,0.,0.]);	#G2III
-        guess_set.append([0.,3.695 ,2.95 ,0.,0.]);	#G8III
-        guess_set.append([0.,3.663 ,2.78 ,0.,0.]);	#K1III
-        guess_set.append([0.,3.602 ,1.93 ,0.,0.]);	#K5III
-        guess_set.append([0.,3.591 ,1.63 ,0.,0.]);	#M0III
+#        guess_set.append([0.,3.763 ,3.20 ,0.,0.]);	#G2III
+#        guess_set.append([0.,3.700 ,2.75 ,0.,0.]);	#G8III
+#        guess_set.append([0.,3.663 ,2.52 ,0.,0.]);	#K1III
+#        guess_set.append([0.,3.602 ,1.25 ,0.,0.]);	#K5III
+#        guess_set.append([0.,3.591 ,1.10 ,0.,0.]);	#M0III
         
         for i in range(len(guess_set)):
             iso_obj=self.isochrones.query(guess_set[i][0], guess_set[i][1], guess_set[i][2])
@@ -213,7 +221,7 @@ class star_posterior:
             guess_set[i][3]=self.r- iso_obj.vr*guess_set[i][4]+iso_obj.ur*guess_set[i][4]*guess_set[i][4]
             
         for it in range(N_walkers):
-            self.start_params[i,:]=guess_set[int(np.random.uniform()*len(guess_set))]
+            self.start_params[it,:]=guess_set[int(np.random.uniform()*len(guess_set))]
             
         self.Teff_chain=np.zeros(chain_length)
         self.logg_chain=np.zeros(chain_length)
@@ -228,27 +236,45 @@ class star_posterior:
         self.r_chain=np.zeros(chain_length)
         self.i_chain=np.zeros(chain_length)
         self.ha_chain=np.zeros(chain_length)            
+        
+        self.itnum_chain=np.zeros(chain_length)            
             
             
-    def emcee_run(self, iterations=1000, thin=1, burn_in=100, N_walkers=30):
+    def emcee_run(self, iterations=10000, thin=10, burn_in=1000, N_walkers=30):
     
         self.emcee_init(N_walkers, (iterations-burn_in)/thin*N_walkers)
     
-        sampler = emcee.EnsembleSampler(nwalkers, 5, emcee_prob)
+        sampler = emcee.EnsembleSampler(N_walkers, 5, emcee_prob, args=[self])
         
         pos, last_prob, state = sampler.run_mcmc(self.start_params, burn_in)     # Burn-in
         sampler.reset()
+
         
-        for i in range((iterations-burn_in)/thin):
-            pos, last_prob, state=sampler.sample(pos, last_prob, state, iterations=thin, storechain=False)       # proper run
+        for i, (pos, prob, rstate) in enumerate(sampler.sample(pos, iterations=(iterations-burn_in), storechain=False)):      # proper run
+        
+            if i%thin==0:
             
-            self.feh_chain[i*N_walkers:(i+1)*N_walkers]=pos[:,0]
-            self.Teff_chain[i*N_walkers:(i+1)*N_walkers]=pos[:,1]
-            self.logg_chain[i*N_walkers:(i+1)*N_walkers]=pos[:,2]
-            self.dist_mod_chain[i*N_walkers:(i+1)*N_walkers]=pos[:,3]
-            self.logA_chain[i*N_walkers:(i+1)*N_walkers]=pos[:,4]
-            
-            self.prob_chain[i*N_walkers:(i+1)*N_walkers]=  last_prob  
+                self.feh_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,0]
+                self.Teff_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,1]
+                self.logg_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,2]
+                self.dist_mod_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,3]
+                self.logA_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,4]
+                
+                self.prob_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]= prob
+                
+                self.itnum_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=  i
+                
+                for n in range(N_walkers):
+                    try:
+                        iso_obj=self.isochrones.query(pos[n,0], pos[n,1], pos[n,2])
+                        A=np.exp(pos[n,4])
+                        self.r_chain[i/thin*N_walkers+n]=iso_obj.r0#+pos[n,3]+iso_obj.vr*A+iso_obj.ur*A*A
+                        self.i_chain[i/thin*N_walkers+n]=iso_obj.i0#+pos[n,3]+iso_obj.vi*A+iso_obj.ui*A*A
+                        self.ha_chain[i/thin*N_walkers+n]=iso_obj.ha0#+pos[n,3]+iso_obj.vha*A+iso_obj.uha*A*A
+                        
+                        
+                    except IndexError:
+                        return -1E9    
 
 
                 
@@ -265,7 +291,7 @@ class star_posterior:
         plt.show()
         
     def chain_dump(self, filename):
-        X=np.array( [np.arange(0,len(self.Teff_chain)), self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.r_chain, self.i_chain, self.ha_chain ]).T
+        X=np.array( [self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.r_chain, self.i_chain, self.ha_chain ]).T
         np.savetxt(filename, X, header="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tlike\tprior\tJac\tr\ti\tha\n" )
     
     # Fit Gaussians
