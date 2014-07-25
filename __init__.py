@@ -3,6 +3,7 @@
 import numpy as np
 #import iso_lib as il
 import sklearn as sk
+import sklearn.cluster as sk_c
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import emcee
@@ -240,7 +241,7 @@ class star_posterior:
         self.itnum_chain=np.zeros(chain_length)            
             
             
-    def emcee_run(self, iterations=10000, thin=10, burn_in=1000, N_walkers=50):
+    def emcee_run(self, iterations=10000, thin=10, burn_in=2000, N_walkers=50, prune=True, cluster_plot=False):
     
         self.emcee_init(N_walkers, (iterations-burn_in)/thin*N_walkers)
     
@@ -248,6 +249,40 @@ class star_posterior:
         
         pos, last_prob, state = sampler.run_mcmc(self.start_params, burn_in)     # Burn-in
         sampler.reset()
+ 
+        if prune:        
+            dbscan = sk_c.DBSCAN(eps=0.05)
+            pos, last_prob, state = sampler.run_mcmc(pos, 10, rstate0=state, lnprob0=last_prob)     # pruning set
+            dbscan.fit(sampler.flatchain[:,1:2])
+            labels=dbscan.labels_.astype(np.int)
+            
+            if cluster_plot:
+                colors = np.array([x for x in 'bgrcmykbgrcmykbgrcmykbgrcmyk'])
+                colors = np.hstack([colors] * 20)
+                fig=plt.figure()
+                ax1=fig.add_subplot(111)
+                
+                print "num points = ",sampler.flatchain[:,1].size
+                
+                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color=colors[labels].tolist(),)
+                plt.show()
+            
+            mean_ln_prob=np.mean(sampler.flatlnprobability)
+            cl_list=[]
+            weights_list=[]
+            weights_sum=0
+            for cl_it in range(np.max(labels)+1):
+                cl_list.append(posterior_cluster(sampler.flatchain[labels==cl_it,:], sampler.flatlnprobability[labels==cl_it]-mean_ln_prob))
+                weights_sum+= cl_list[-1].weight
+                weights_list.append(cl_list[-1].weight)
+            print weights_sum
+            
+            for i in range(N_walkers):
+                cluster=np.random.choice(np.max(labels)+1, p=weights_list/np.sum(weights_list))
+                index=int( np.random.uniform()*len(cl_list[cluster]) )
+                pos[i,:]=cl_list[cluster].data[index,:]
+            
+            sampler.reset()
 
         
         for i, (pos, prob, rstate) in enumerate(sampler.sample(pos, iterations=(iterations-burn_in), storechain=False)):      # proper run
@@ -274,9 +309,8 @@ class star_posterior:
                         
                         
                     except IndexError:
-                        return -1E9    
-
-
+                        print -1E9  
+                        
                 
     # ==============================================================
     # Auxilary functions
@@ -297,3 +331,23 @@ class star_posterior:
     # Fit Gaussians
     
 #    def gauss_fit(self):
+
+class posterior_cluster:
+
+    def __init__(self, data, probs):
+        self.data=data
+        self.probs=probs
+        
+        self.set_weight()
+        
+        print np.mean(self.data[:,1]), np.mean(self.data[:,2]), self.weight
+        
+    def __len__(self):
+        return self.data.shape[0]
+        
+    def set_weight(self, weight=None):
+        if weight:
+            self.weight=weight
+        else:
+            self.weight=np.mean(np.exp(self.probs))*min(np.std(self.data[:,1]),0.01)*min(np.std(self.data[:,2]),0.01)
+                     
