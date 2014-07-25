@@ -40,7 +40,7 @@ class star_posterior:
     
     def __init__(self, r_in, i_in, ha_in, dr_in, di_in, dha_in, isochrones):
     
-        self.colors = np.array([x for x in 'bgrcmykbgrcmykbgrcmykbgrcmyk'])
+        self.colors = np.array([x for x in 'bgrcmybgrcmybgrcmybgrcmy'])
         self.colors = np.hstack([self.colors] * 20)
     
         self.r=r_in
@@ -321,19 +321,21 @@ class star_posterior:
     # ==============================================================                        
     # Fit Gaussians
     
-    def gauss_fit(self):
+    def gmm_fit(self):
     
         if self.MCMC_run:
             fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
             print fit_points.shape
             best_bic=+np.infty
-            for n_components in range(1,10):
-                gmm = sk_m.GMM(n_components=n_components, covariance_type='full')
+            for n_components in range(1,20):
+                gmm = sk_m.GMM(n_components=n_components, covariance_type='full',min_covar=0.05)
                 gmm.fit(fit_points)
                 if gmm.bic(fit_points)<best_bic:
                     best_bic=gmm.bic(fit_points)
                     self.best_gmm=gmm
-                    print n_components, best_bic, gmm.aic(fit_points)
+                    print n_components, best_bic, gmm.aic(fit_points), "*"
+                else:
+                    print n_components, gmm.bic(fit_points), gmm.aic(fit_points) 
                         
                 
     # ==============================================================                        
@@ -371,7 +373,7 @@ class star_posterior:
 
             # Plot an ellipse to show the Gaussian component            
             
-            v, w = linalg.eigh(self.best_gmm.covars_[it])
+            v, w = linalg.eigh(self.best_gmm._get_covars()[it])
             
             angle = np.arctan2(w[0][1], w[0][0])
             angle = 180 * angle / np.pi  # convert to degrees
@@ -380,7 +382,29 @@ class star_posterior:
             ell.set_clip_box(ax1.bbox)
             ell.set_alpha(.5)
             ax1.add_artist(ell)
-        plt.show()    
+        plt.show()
+        
+    def compare_MCMC_hist(self):
+        fig=plt.figure()
+        ax1=fig.add_subplot(111) 
+        
+        bins=np.arange(8.,17.5, 0.25)
+        
+        ax1.hist(self.dist_mod_chain, bins, histtype='step', ec='k')
+        
+        x=np.arange(np.min(self.dist_mod_chain), np.max(self.dist_mod_chain), 0.1)
+        y=np.zeros(x.size)
+        
+        for it in range(self.best_gmm.weights_.size):
+             y+=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.best_gmm.weights_[it]
+             y_it=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.dist_mod_chain.size*.25  * self.best_gmm.weights_[it]
+             ax1.plot(x,y_it, marker='-', color=self.colors[it])
+             
+        y*=self.dist_mod_chain.size*.25
+        ax1.plot(x, y, 'k--', linewidth=1.5)
+
+        
+        plt.show()
 
 
 # class to store clusters in posterior space
