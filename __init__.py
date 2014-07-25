@@ -4,10 +4,12 @@ import numpy as np
 #import iso_lib as il
 import sklearn as sk
 import sklearn.cluster as sk_c
+import sklearn.mixture as sk_m
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import emcee
 
+from scipy import linalg
 
 
 
@@ -38,6 +40,9 @@ class star_posterior:
     
     def __init__(self, r_in, i_in, ha_in, dr_in, di_in, dha_in, isochrones):
     
+        self.colors = np.array([x for x in 'bgrcmykbgrcmykbgrcmykbgrcmyk'])
+        self.colors = np.hstack([self.colors] * 20)
+    
         self.r=r_in
         self.i=i_in
         self.ha=ha_in
@@ -47,6 +52,7 @@ class star_posterior:
         self.dha=dha_in
         
         self.isochrones=isochrones
+        self.MCMC_run=False        
         
     # initialise MCMC_chain
     
@@ -257,14 +263,13 @@ class star_posterior:
             labels=dbscan.labels_.astype(np.int)
             
             if cluster_plot:
-                colors = np.array([x for x in 'bgrcmykbgrcmykbgrcmykbgrcmyk'])
-                colors = np.hstack([colors] * 20)
+
                 fig=plt.figure()
                 ax1=fig.add_subplot(111)
                 
                 print "num points = ",sampler.flatchain[:,1].size
                 
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color=colors[labels].tolist(),)
+                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color=self.colors[labels].tolist(),)
                 plt.show()
             
             mean_ln_prob=np.mean(sampler.flatlnprobability)
@@ -311,8 +316,27 @@ class star_posterior:
                     except IndexError:
                         print -1E9  
                         
+        self.MCMC_run=True
+                        
+    # ==============================================================                        
+    # Fit Gaussians
+    
+    def gauss_fit(self):
+    
+        if self.MCMC_run:
+            fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
+            print fit_points.shape
+            best_bic=+np.infty
+            for n_components in range(1,10):
+                gmm = sk_m.GMM(n_components=n_components, covariance_type='full')
+                gmm.fit(fit_points)
+                if gmm.bic(fit_points)<best_bic:
+                    best_bic=gmm.bic(fit_points)
+                    self.best_gmm=gmm
+                    print n_components, best_bic, gmm.aic(fit_points)
+                        
                 
-    # ==============================================================
+    # ==============================================================                        
     # Auxilary functions
     
     # plot the MCMC sample on the ln(s) ln(A) plane
@@ -323,14 +347,43 @@ class star_posterior:
         
         ax1.scatter(self.dist_mod_chain, self.logA_chain, marker='.')
         plt.show()
+
+    # dump chain to text file
         
     def chain_dump(self, filename):
         X=np.array( [self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.r_chain, self.i_chain, self.ha_chain ]).T
         np.savetxt(filename, X, header="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tlike\tprior\tJac\tr\ti\tha\n" )
     
-    # Fit Gaussians
+
+    # plot MCMC sample overlaid with gaussian fit in dist_mod x log(A) space
     
-#    def gauss_fit(self):
+    def plot_MCMCsample_gaussians(self):
+        fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
+        Y_=self.best_gmm.predict(fit_points)
+        
+
+    
+        fig=plt.figure()
+        ax1=fig.add_subplot(111)
+        
+        for it in range(self.best_gmm.weights_.size):
+            ax1.scatter(fit_points[Y_==it,0], fit_points[Y_==it,1], marker='.', color=self.colors[it])
+
+            # Plot an ellipse to show the Gaussian component            
+            
+            v, w = linalg.eigh(self.best_gmm.covars_[it])
+            
+            angle = np.arctan2(w[0][1], w[0][0])
+            angle = 180 * angle / np.pi  # convert to degrees
+            v *= 4
+            ell = mpl.patches.Ellipse(self.best_gmm.means_[it], v[0], v[1], 180 + angle, color=self.colors[it])
+            ell.set_clip_box(ax1.bbox)
+            ell.set_alpha(.5)
+            ax1.add_artist(ell)
+        plt.show()    
+
+
+# class to store clusters in posterior space
 
 class posterior_cluster:
 
@@ -349,5 +402,5 @@ class posterior_cluster:
         if weight:
             self.weight=weight
         else:
-            self.weight=np.mean(np.exp(self.probs))*min(np.std(self.data[:,1]),0.01)*min(np.std(self.data[:,2]),0.01)
+            self.weight=np.mean(np.exp(self.probs))*max(np.std(self.data[:,1]),0.01)*max(np.std(self.data[:,2]),0.01)
                      
