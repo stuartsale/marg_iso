@@ -29,8 +29,9 @@ def emcee_prob(params, star):
         return -(np.power(star.r-(iso_obj.r0+params[3]+iso_obj.vr*A+iso_obj.ur*A*A) ,2)/(2*star.dr*star.dr)
                 +np.power(star.i-(iso_obj.i0+params[3]+iso_obj.vi*A+iso_obj.ui*A*A) ,2)/(2*star.di*star.di)
                 +np.power(star.ha-(iso_obj.ha0+params[3]+iso_obj.vha*A+iso_obj.uha*A*A) ,2)/(2*star.dha*star.dha) ) \
-                +np.log(iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(iso_obj.Mi) + 2.3026*iso_obj.logage + params[4] #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.  
-            
+                +np.log(iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(iso_obj.Mi) + 2.3026*iso_obj.logage + params[4] -np.power(params[0]+((8000+dist)-8000.)*0.00007,2)/(2*0.0625)
+                #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.  
+                
 
 # Class to contain star's data, chain, etc            
 
@@ -227,9 +228,13 @@ class star_posterior:
             iso_obj=self.isochrones.query(guess_set[i][0], guess_set[i][1], guess_set[i][2])
             guess_set[i][4]=((self.r-self.i)-(iso_obj.r0-iso_obj.i0))/(iso_obj.vr-iso_obj.vi)
             guess_set[i][3]=self.r- iso_obj.vr*guess_set[i][4]+iso_obj.ur*guess_set[i][4]*guess_set[i][4]
+    
+        metal_min=sorted(self.isochrones.metal_dict.keys())[0]
+        metal_max=sorted(self.isochrones.metal_dict.keys())[-1]
             
         for it in range(N_walkers):
             self.start_params[it,:]=guess_set[int(np.random.uniform()*len(guess_set))]
+            self.start_params[it,0]=metal_min+(metal_max-metal_min)*np.random.uniform()
             
         self.Teff_chain=np.zeros(chain_length)
         self.logg_chain=np.zeros(chain_length)
