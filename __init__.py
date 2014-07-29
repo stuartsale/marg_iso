@@ -112,13 +112,15 @@ class star_posterior:
     
     def set_lastprior(self):
         dist=pow(10., self.last_dist_mod/5.+1.)
-        self.last_prior=np.log(self.last_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.last_iso_obj.Mi) + 2.3026*self.last_iso_obj.logage + self.last_logA #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.
+        self.last_prior=np.log(self.last_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.last_iso_obj.Mi) + 2.3026*self.last_iso_obj.logage + self.last_logA \
+                        -np.power(self.last_iso_obj.feh+((8000+dist)-8000.)*0.00007,2)/(2*0.0625) #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.
         
     # find prior prob of test param set
     
     def set_testprior(self):
         dist=pow(10., self.test_dist_mod/5.+1.)
-        self.test_prior=np.log(self.test_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.test_iso_obj.Mi) + 2.3026*self.test_iso_obj.logage + self.test_logA #3*0.4605*(self.test_dist_mod+5) + self.test_logA - pow(10., self.test_dist_mod/5.+1.)/2500.
+        self.test_prior=np.log(self.test_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.test_iso_obj.Mi) + 2.3026*self.test_iso_obj.logage + self.test_logA \
+                        -np.power(self.test_iso_obj.feh+((8000+dist)-8000.)*0.00007,2)/(2*0.0625) #3*0.4605*(self.test_dist_mod+5) + self.test_logA - pow(10., self.test_dist_mod/5.+1.)/2500.
     
     # MCMC sampler
     
