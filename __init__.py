@@ -52,7 +52,8 @@ class star_posterior:
         self.dha=dha_in
         
         self.isochrones=isochrones
-        self.MCMC_run=False        
+        self.MCMC_run=False 
+        self.best_gmm=None       
         
     # initialise MCMC_chain
     
@@ -327,15 +328,34 @@ class star_posterior:
             fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
             print fit_points.shape
             best_bic=+np.infty
-            for n_components in range(1,20):
+            for n_components in range(1,11):
                 gmm = sk_m.GMM(n_components=n_components, covariance_type='full',min_covar=0.05)
                 gmm.fit(fit_points)
                 if gmm.bic(fit_points)<best_bic:
                     best_bic=gmm.bic(fit_points)
                     self.best_gmm=gmm
-                    print n_components, best_bic, gmm.aic(fit_points), "*"
+                    print n_components, best_bic, np.sort(gmm.weights_), "*"
                 else:
-                    print n_components, gmm.bic(fit_points), gmm.aic(fit_points) 
+                    print n_components, gmm.bic(fit_points), np.sort(gmm.weights_)
+                    
+    def gmm_sample(self, filename=None, num_samples=None):
+        if self.best_gmm:
+            if num_samples==None:
+                num_samples=self.prob_chain.size
+                
+            components=np.random.choice(self.best_gmm.weights_.size, p=self.best_gmm.weights_, size=num_samples)
+            
+            covar_roots=[]
+            for covar in self.best_gmm._get_covars():
+                covar_roots.append(np.linalg.cholesky(covar))
+            
+            self.gmm_sample=self.best_gmm.means_[components]  #+ np.dot(self.best_gmm._get_covars()[0], np.random.normal(size=(2, num_samples)) ).T
+            for it in range(components.size):
+                self.gmm_sample[it,:]+=np.dot(covar_roots[components[it]], np.random.normal(size=(2, 1) )).flatten()
+            
+            if filename:
+                np.savetxt(filename, self.gmm_sample)
+            
                         
                 
     # ==============================================================                        
@@ -398,7 +418,7 @@ class star_posterior:
         for it in range(self.best_gmm.weights_.size):
              y+=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.best_gmm.weights_[it]
              y_it=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.dist_mod_chain.size*.25  * self.best_gmm.weights_[it]
-             ax1.plot(x,y_it, marker='-', color=self.colors[it])
+             ax1.plot(x,y_it, color=self.colors[it])
              
         y*=self.dist_mod_chain.size*.25
         ax1.plot(x, y, 'k--', linewidth=1.5)
