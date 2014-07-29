@@ -4,10 +4,12 @@ import numpy as np
 #import iso_lib as il
 import sklearn as sk
 import sklearn.cluster as sk_c
+import sklearn.mixture as sk_m
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import emcee
 
+from scipy import linalg
 
 
 
@@ -27,8 +29,9 @@ def emcee_prob(params, star):
         return -(np.power(star.r-(iso_obj.r0+params[3]+iso_obj.vr*A+iso_obj.ur*A*A) ,2)/(2*star.dr*star.dr)
                 +np.power(star.i-(iso_obj.i0+params[3]+iso_obj.vi*A+iso_obj.ui*A*A) ,2)/(2*star.di*star.di)
                 +np.power(star.ha-(iso_obj.ha0+params[3]+iso_obj.vha*A+iso_obj.uha*A*A) ,2)/(2*star.dha*star.dha) ) \
-                +np.log(iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(iso_obj.Mi) + 2.3026*iso_obj.logage + params[4] #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.  
-            
+                +np.log(iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(iso_obj.Mi) + 2.3026*iso_obj.logage + params[4] -np.power(params[0]+((8000+dist)-8000.)*0.00007,2)/(2*0.0625)
+                #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.  
+                
 
 # Class to contain star's data, chain, etc            
 
@@ -37,6 +40,9 @@ class star_posterior:
     # init function
     
     def __init__(self, r_in, i_in, ha_in, dr_in, di_in, dha_in, isochrones):
+    
+        self.colors = np.array([x for x in 'bgrcmybgrcmybgrcmybgrcmy'])
+        self.colors = np.hstack([self.colors] * 20)
     
         self.r=r_in
         self.i=i_in
@@ -47,6 +53,8 @@ class star_posterior:
         self.dha=dha_in
         
         self.isochrones=isochrones
+        self.MCMC_run=False 
+        self.best_gmm=None       
         
     # initialise MCMC_chain
     
@@ -104,13 +112,15 @@ class star_posterior:
     
     def set_lastprior(self):
         dist=pow(10., self.last_dist_mod/5.+1.)
-        self.last_prior=np.log(self.last_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.last_iso_obj.Mi) + 2.3026*self.last_iso_obj.logage + self.last_logA #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.
+        self.last_prior=np.log(self.last_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.last_iso_obj.Mi) + 2.3026*self.last_iso_obj.logage + self.last_logA \
+                        -np.power(self.last_iso_obj.feh+((8000+dist)-8000.)*0.00007,2)/(2*0.0625) #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.
         
     # find prior prob of test param set
     
     def set_testprior(self):
         dist=pow(10., self.test_dist_mod/5.+1.)
-        self.test_prior=np.log(self.test_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.test_iso_obj.Mi) + 2.3026*self.test_iso_obj.logage + self.test_logA #3*0.4605*(self.test_dist_mod+5) + self.test_logA - pow(10., self.test_dist_mod/5.+1.)/2500.
+        self.test_prior=np.log(self.test_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.test_iso_obj.Mi) + 2.3026*self.test_iso_obj.logage + self.test_logA \
+                        -np.power(self.test_iso_obj.feh+((8000+dist)-8000.)*0.00007,2)/(2*0.0625) #3*0.4605*(self.test_dist_mod+5) + self.test_logA - pow(10., self.test_dist_mod/5.+1.)/2500.
     
     # MCMC sampler
     
@@ -220,9 +230,13 @@ class star_posterior:
             iso_obj=self.isochrones.query(guess_set[i][0], guess_set[i][1], guess_set[i][2])
             guess_set[i][4]=((self.r-self.i)-(iso_obj.r0-iso_obj.i0))/(iso_obj.vr-iso_obj.vi)
             guess_set[i][3]=self.r- iso_obj.vr*guess_set[i][4]+iso_obj.ur*guess_set[i][4]*guess_set[i][4]
+    
+        metal_min=sorted(self.isochrones.metal_dict.keys())[0]
+        metal_max=sorted(self.isochrones.metal_dict.keys())[-1]
             
         for it in range(N_walkers):
             self.start_params[it,:]=guess_set[int(np.random.uniform()*len(guess_set))]
+            self.start_params[it,0]=metal_min+(metal_max-metal_min)*np.random.uniform()
             
         self.Teff_chain=np.zeros(chain_length)
         self.logg_chain=np.zeros(chain_length)
@@ -257,14 +271,13 @@ class star_posterior:
             labels=dbscan.labels_.astype(np.int)
             
             if cluster_plot:
-                colors = np.array([x for x in 'bgrcmykbgrcmykbgrcmykbgrcmyk'])
-                colors = np.hstack([colors] * 20)
+
                 fig=plt.figure()
                 ax1=fig.add_subplot(111)
                 
                 print "num points = ",sampler.flatchain[:,1].size
                 
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color=colors[labels].tolist(),)
+                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color=self.colors[labels].tolist(),)
                 plt.show()
             
             mean_ln_prob=np.mean(sampler.flatlnprobability)
@@ -311,8 +324,48 @@ class star_posterior:
                     except IndexError:
                         print -1E9  
                         
+        self.MCMC_run=True
+                        
+    # ==============================================================                        
+    # Fit Gaussians
+    
+    def gmm_fit(self):
+    
+        if self.MCMC_run:
+            fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
+            print fit_points.shape
+            best_bic=+np.infty
+            for n_components in range(1,11):
+                gmm = sk_m.GMM(n_components=n_components, covariance_type='full',min_covar=0.05)
+                gmm.fit(fit_points)
+                if gmm.bic(fit_points)<best_bic:
+                    best_bic=gmm.bic(fit_points)
+                    self.best_gmm=gmm
+                    print n_components, best_bic, np.sort(gmm.weights_), "*"
+                else:
+                    print n_components, gmm.bic(fit_points), np.sort(gmm.weights_)
+                    
+    def gmm_sample(self, filename=None, num_samples=None):
+        if self.best_gmm:
+            if num_samples==None:
+                num_samples=self.prob_chain.size
                 
-    # ==============================================================
+            components=np.random.choice(self.best_gmm.weights_.size, p=self.best_gmm.weights_, size=num_samples)
+            
+            covar_roots=[]
+            for covar in self.best_gmm._get_covars():
+                covar_roots.append(np.linalg.cholesky(covar))
+            
+            self.gmm_sample=self.best_gmm.means_[components]  #+ np.dot(self.best_gmm._get_covars()[0], np.random.normal(size=(2, num_samples)) ).T
+            for it in range(components.size):
+                self.gmm_sample[it,:]+=np.dot(covar_roots[components[it]], np.random.normal(size=(2, 1) )).flatten()
+            
+            if filename:
+                np.savetxt(filename, self.gmm_sample)
+            
+                        
+                
+    # ==============================================================                        
     # Auxilary functions
     
     # plot the MCMC sample on the ln(s) ln(A) plane
@@ -323,14 +376,65 @@ class star_posterior:
         
         ax1.scatter(self.dist_mod_chain, self.logA_chain, marker='.')
         plt.show()
+
+    # dump chain to text file
         
     def chain_dump(self, filename):
         X=np.array( [self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.r_chain, self.i_chain, self.ha_chain ]).T
         np.savetxt(filename, X, header="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tlike\tprior\tJac\tr\ti\tha\n" )
     
-    # Fit Gaussians
+
+    # plot MCMC sample overlaid with gaussian fit in dist_mod x log(A) space
     
-#    def gauss_fit(self):
+    def plot_MCMCsample_gaussians(self):
+        fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
+        Y_=self.best_gmm.predict(fit_points)
+        
+
+    
+        fig=plt.figure()
+        ax1=fig.add_subplot(111)
+        
+        for it in range(self.best_gmm.weights_.size):
+            ax1.scatter(fit_points[Y_==it,0], fit_points[Y_==it,1], marker='.', color=self.colors[it])
+
+            # Plot an ellipse to show the Gaussian component            
+            
+            v, w = linalg.eigh(self.best_gmm._get_covars()[it])
+            
+            angle = np.arctan2(w[0][1], w[0][0])
+            angle = 180 * angle / np.pi  # convert to degrees
+            v *= 4
+            ell = mpl.patches.Ellipse(self.best_gmm.means_[it], v[0], v[1], 180 + angle, color=self.colors[it])
+            ell.set_clip_box(ax1.bbox)
+            ell.set_alpha(.5)
+            ax1.add_artist(ell)
+        plt.show()
+        
+    def compare_MCMC_hist(self):
+        fig=plt.figure()
+        ax1=fig.add_subplot(111) 
+        
+        bins=np.arange(8.,17.5, 0.25)
+        
+        ax1.hist(self.dist_mod_chain, bins, histtype='step', ec='k')
+        
+        x=np.arange(np.min(self.dist_mod_chain), np.max(self.dist_mod_chain), 0.1)
+        y=np.zeros(x.size)
+        
+        for it in range(self.best_gmm.weights_.size):
+             y+=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.best_gmm.weights_[it]
+             y_it=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.dist_mod_chain.size*.25  * self.best_gmm.weights_[it]
+             ax1.plot(x,y_it, color=self.colors[it])
+             
+        y*=self.dist_mod_chain.size*.25
+        ax1.plot(x, y, 'k--', linewidth=1.5)
+
+        
+        plt.show()
+
+
+# class to store clusters in posterior space
 
 class posterior_cluster:
 
@@ -349,5 +453,5 @@ class posterior_cluster:
         if weight:
             self.weight=weight
         else:
-            self.weight=np.mean(np.exp(self.probs))*min(np.std(self.data[:,1]),0.01)*min(np.std(self.data[:,2]),0.01)
+            self.weight=np.mean(np.exp(self.probs))*max(np.std(self.data[:,1]),0.01)*max(np.std(self.data[:,2]),0.01)
                      
