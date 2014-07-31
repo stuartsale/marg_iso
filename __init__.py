@@ -8,14 +8,13 @@ import sklearn.mixture as sk_m
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import emcee
+import math
 
 from scipy import linalg
 
 
 
 def emcee_prob(params, star):
-    A=np.exp(params[4])
-    dist=pow(10., params[3]/5.+1.)
             
     try:
         iso_obj=star.isochrones.query(params[0], params[1], params[2])
@@ -26,10 +25,14 @@ def emcee_prob(params, star):
         return -np.inf
         
     else:
-        return -(np.power(star.r-(iso_obj.r0+params[3]+iso_obj.vr*A+iso_obj.ur*A*A) ,2)/(2*star.dr*star.dr)
-                +np.power(star.i-(iso_obj.i0+params[3]+iso_obj.vi*A+iso_obj.ui*A*A) ,2)/(2*star.di*star.di)
-                +np.power(star.ha-(iso_obj.ha0+params[3]+iso_obj.vha*A+iso_obj.uha*A*A) ,2)/(2*star.dha*star.dha) ) \
-                +np.log(iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(iso_obj.Mi) + 2.3026*iso_obj.logage + params[4] -np.power(params[0]+((8000+dist)-8000.)*0.00007,2)/(2*0.0625)
+        A=math.exp(params[4])
+        dist=pow(10., params[3]/5.+1.)    
+        R_gal=math.sqrt( 8000*8000+np.power(dist*star.cosb,2)-2*8000*dist*star.cosb*star.cosl )
+        return -(pow(star.r-(iso_obj.r0+params[3]+iso_obj.vr*A+iso_obj.ur*A*A) ,2)/(2*star.dr*star.dr)
+                +pow(star.i-(iso_obj.i0+params[3]+iso_obj.vi*A+iso_obj.ui*A*A) ,2)/(2*star.di*star.di)
+                +pow(star.ha-(iso_obj.ha0+params[3]+iso_obj.vha*A+iso_obj.uha*A*A) ,2)/(2*star.dha*star.dha) ) \
+                +math.log(iso_obj.Jac) + 3*math.log(dist) - dist/2500. -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage + params[4] \
+                -pow(params[0]+(R_gal-8000.)*0.00007,2)/(2*0.0625)
                 #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.  
                 
 
@@ -39,10 +42,18 @@ class star_posterior:
 
     # init function
     
-    def __init__(self, r_in, i_in, ha_in, dr_in, di_in, dha_in, isochrones):
+    def __init__(self, l, b, r_in, i_in, ha_in, dr_in, di_in, dha_in, isochrones):
     
         self.colors = np.array([x for x in 'bgrcmybgrcmybgrcmybgrcmy'])
         self.colors = np.hstack([self.colors] * 20)
+        
+        self.l=np.radians(l)
+        self.b=np.radians(b)
+
+        self.sinl=np.sin(self.l)
+        self.cosl=np.cos(self.l)
+        self.sinb=np.sin(self.b)
+        self.cosb=np.cos(self.b)
     
         self.r=r_in
         self.i=i_in
@@ -112,15 +123,17 @@ class star_posterior:
     
     def set_lastprior(self):
         dist=pow(10., self.last_dist_mod/5.+1.)
+        R_gal=np.sqrt( 8000*8000+np.power(dist*self.cosb,2)-2*8000*dist*self.cosb*self.cosl )        
         self.last_prior=np.log(self.last_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.last_iso_obj.Mi) + 2.3026*self.last_iso_obj.logage + self.last_logA \
-                        -np.power(self.last_iso_obj.feh+((8000+dist)-8000.)*0.00007,2)/(2*0.0625) #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.
+                        -np.power(self.last_iso_obj.feh+(R_gal-8000.)*0.00007,2)/(2*0.0625) #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.
         
     # find prior prob of test param set
     
     def set_testprior(self):
         dist=pow(10., self.test_dist_mod/5.+1.)
+        R_gal=np.sqrt( 8000*8000+np.power(dist*self.cosb,2)-2*8000*dist*self.cosb*self.cosl )
         self.test_prior=np.log(self.test_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.test_iso_obj.Mi) + 2.3026*self.test_iso_obj.logage + self.test_logA \
-                        -np.power(self.test_iso_obj.feh+((8000+dist)-8000.)*0.00007,2)/(2*0.0625) #3*0.4605*(self.test_dist_mod+5) + self.test_logA - pow(10., self.test_dist_mod/5.+1.)/2500.
+                        -np.power(self.test_iso_obj.feh+(R_gal-8000.)*0.00007,2)/(2*0.0625) #3*0.4605*(self.test_dist_mod+5) + self.test_logA - pow(10., self.test_dist_mod/5.+1.)/2500.
     
     # MCMC sampler
     
