@@ -31,7 +31,7 @@ def emcee_prob(params, star):
         return -(pow(star.r-(iso_obj.r0+params[3]+iso_obj.vr*A+iso_obj.ur*A*A) ,2)/(2*star.dr*star.dr)
                 +pow(star.i-(iso_obj.i0+params[3]+iso_obj.vi*A+iso_obj.ui*A*A) ,2)/(2*star.di*star.di)
                 +pow(star.ha-(iso_obj.ha0+params[3]+iso_obj.vha*A+iso_obj.uha*A*A) ,2)/(2*star.dha*star.dha) ) \
-                +math.log(iso_obj.Jac) + 3*math.log(dist) - dist/2500. -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage + params[4] \
+                +math.log(iso_obj.Jac) + 3*math.log(dist) - dist/2500. -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
                 -pow(params[0]+(R_gal-8000.)*0.00007,2)/(2*0.0625)
                 #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.  
                 
