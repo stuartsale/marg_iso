@@ -355,7 +355,7 @@ class star_posterior:
             for n_components in range(1,11):
                 gmm = sk_m.GMM(n_components=n_components, covariance_type='full',min_covar=0.05)
                 gmm.fit(fit_points)
-                if gmm.bic(fit_points)<best_bic:
+                if gmm.bic(fit_points)<best_bic-10:
                     best_bic=gmm.bic(fit_points)
                     self.best_gmm=gmm
                     print n_components, best_bic, np.sort(gmm.weights_), "*"
