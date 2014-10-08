@@ -12,6 +12,8 @@ import math
 
 from scipy import linalg
 
+default_iso_file="/home/sale/work-oxford/isochrones/padova-iso_tefflogg_0214.txt"
+
 
 
 def emcee_prob(params, star):
@@ -47,7 +49,8 @@ class star_posterior:
 
     # init function
     
-    def __init__(self, l, b, mag_in, d_mag_in, isochrones=None):
+    def __init__(self, l, b, mag_in, d_mag_in, 
+                 isochrones=il.iso_grid_tefflogg(default_iso_file, teff_col=3, logg_col=4, verbose=False)):
     
         self.colors = np.array([x for x in 'bgrcmybgrcmybgrcmybgrcmy'])
         self.colors = np.hstack([self.colors] * 20)
@@ -63,10 +66,7 @@ class star_posterior:
         self.mag=mag_in
         self.d_mag=d_mag_in
         
-        if isochrones is not None:
-            self.isochrones=isochrones
-        else:
-            self.isochrones=il.iso_grid_tefflogg("/home/sale/work-oxford/isochrones/padova-iso_tefflogg_0214.txt", teff_col=3, logg_col=4, verbose=False)
+        self.isochrones=isochrones
             
         self.MCMC_run=False 
         self.best_gmm=None       
