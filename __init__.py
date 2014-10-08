@@ -28,9 +28,9 @@ def emcee_prob(params, star):
         A=math.exp(params[4])
         dist=pow(10., params[3]/5.+1.)    
         R_gal=math.sqrt( 8000*8000+pow(dist*star.cosb,2)-2*8000*dist*star.cosb*star.cosl )
-        return -(pow(star.r-(iso_obj.r0+params[3]+iso_obj.Ar(A, params[5]) ) ,2)/(2*star.dr*star.dr)
-                +pow(star.i-(iso_obj.i0+params[3]+iso_obj.Ai(A, params[5]) ) ,2)/(2*star.di*star.di)
-                +pow(star.ha-(iso_obj.ha0+params[3]+iso_obj.Aha(A, params[5]) ) ,2)/(2*star.dha*star.dha) ) \
+        return -(pow(star.r-(iso_obj.abs_mag["r"]+params[3]+iso_obj.AX("r", A, params[5]) ) ,2)/(2*star.dr*star.dr)
+                +pow(star.i-(iso_obj.abs_mag["i"]+params[3]+iso_obj.AX("i", A, params[5]) ) ,2)/(2*star.di*star.di)
+                +pow(star.ha-(iso_obj.abs_mag["Ha"]+params[3]+iso_obj.AX("Ha", A, params[5]) ) ,2)/(2*star.dha*star.dha) ) \
                 +math.log(iso_obj.Jac) + 3*math.log(dist) - dist/2500. -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
                 -pow(params[0]+(R_gal-8000.)*0.00007,2)/(2*0.0625) \
                 -pow(params[5]-3.1,2)/(0.08)
@@ -242,8 +242,8 @@ class star_posterior:
         
         for i in range(len(guess_set)):
             iso_obj=self.isochrones.query(guess_set[i][0], guess_set[i][1], guess_set[i][2])
-            guess_set[i][4]=((self.r-self.i)-(iso_obj.r0-iso_obj.i0))/(iso_obj.vr[11]-iso_obj.vi[11])
-            guess_set[i][3]=self.r- iso_obj.vr[11]*guess_set[i][4]+iso_obj.ur[11]*guess_set[i][4]*guess_set[i][4]
+            guess_set[i][4]=((self.r-self.i)-(iso_obj.abs_mag["r"]-iso_obj.abs_mag["i"]))/(iso_obj.AX1["r"][11]-iso_obj.AX1["i"][11])
+            guess_set[i][3]=self.r- (iso_obj.AX1["r"][11]*guess_set[i][4]+iso_obj.AX2["r"][11]*guess_set[i][4]*guess_set[i][4]+iso_obj.abs_mag["r"])
     
         metal_min=sorted(self.isochrones.metal_dict.keys())[0]
         metal_max=sorted(self.isochrones.metal_dict.keys())[-1]
@@ -333,9 +333,9 @@ class star_posterior:
                     try:
                         iso_obj=self.isochrones.query(pos[n,0], pos[n,1], pos[n,2])
                         A=np.exp(pos[n,4])
-                        self.r_chain[i/thin*N_walkers+n]=iso_obj.r0#+pos[n,3]+iso_obj.vr*A+iso_obj.ur*A*A
-                        self.i_chain[i/thin*N_walkers+n]=iso_obj.i0#+pos[n,3]+iso_obj.vi*A+iso_obj.ui*A*A
-                        self.ha_chain[i/thin*N_walkers+n]=iso_obj.ha0#+pos[n,3]+iso_obj.vha*A+iso_obj.uha*A*A
+                        self.r_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["r"]#+pos[n,3]+iso_obj.vr*A+iso_obj.ur*A*A
+                        self.i_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["i"]#+pos[n,3]+iso_obj.vi*A+iso_obj.ui*A*A
+                        self.ha_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["Ha"]#+pos[n,3]+iso_obj.vha*A+iso_obj.uha*A*A
                         
                         
                     except IndexError:
