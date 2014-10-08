@@ -28,12 +28,16 @@ def emcee_prob(params, star):
         A=math.exp(params[4])
         dist=pow(10., params[3]/5.+1.)    
         R_gal=math.sqrt( 8000*8000+pow(dist*star.cosb,2)-2*8000*dist*star.cosb*star.cosl )
-        return -(pow(star.r-(iso_obj.abs_mag["r"]+params[3]+iso_obj.AX("r", A, params[5]) ) ,2)/(2*star.dr*star.dr)
-                +pow(star.i-(iso_obj.abs_mag["i"]+params[3]+iso_obj.AX("i", A, params[5]) ) ,2)/(2*star.di*star.di)
-                +pow(star.ha-(iso_obj.abs_mag["Ha"]+params[3]+iso_obj.AX("Ha", A, params[5]) ) ,2)/(2*star.dha*star.dha) ) \
-                +math.log(iso_obj.Jac) + 3*math.log(dist) - dist/2500. -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
+        prob= math.log(iso_obj.Jac) + 3*math.log(dist) - dist/2500. -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
                 -pow(params[0]+(R_gal-8000.)*0.00007,2)/(2*0.0625) \
                 -pow(params[5]-3.1,2)/(0.08)
+                
+        for band in star.mag.keys():
+            prob-= pow(star.mag[band]-(iso_obj.abs_mag[band]+params[3]+iso_obj.AX(band, A, params[5]) ) 
+                    ,2)/(2*star.d_mag[band]*star.d_mag[band])
+        
+        return prob
+                
                 #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.  
                 
 
@@ -43,7 +47,7 @@ class star_posterior:
 
     # init function
     
-    def __init__(self, l, b, r_in, i_in, ha_in, dr_in, di_in, dha_in, isochrones):
+    def __init__(self, l, b, mag_in, d_mag_in, isochrones):
     
         self.colors = np.array([x for x in 'bgrcmybgrcmybgrcmybgrcmy'])
         self.colors = np.hstack([self.colors] * 20)
@@ -56,13 +60,8 @@ class star_posterior:
         self.sinb=np.sin(self.b)
         self.cosb=np.cos(self.b)
     
-        self.r=r_in
-        self.i=i_in
-        self.ha=ha_in
-        
-        self.dr=dr_in
-        self.di=di_in
-        self.dha=dha_in
+        self.mag=mag_in
+        self.d_mag=d_mag_in
         
         self.isochrones=isochrones
         self.MCMC_run=False 
@@ -242,8 +241,8 @@ class star_posterior:
         
         for i in range(len(guess_set)):
             iso_obj=self.isochrones.query(guess_set[i][0], guess_set[i][1], guess_set[i][2])
-            guess_set[i][4]=((self.r-self.i)-(iso_obj.abs_mag["r"]-iso_obj.abs_mag["i"]))/(iso_obj.AX1["r"][11]-iso_obj.AX1["i"][11])
-            guess_set[i][3]=self.r- (iso_obj.AX1["r"][11]*guess_set[i][4]+iso_obj.AX2["r"][11]*guess_set[i][4]*guess_set[i][4]+iso_obj.abs_mag["r"])
+            guess_set[i][4]=((self.mag["r"]-self.mag["i"])-(iso_obj.abs_mag["r"]-iso_obj.abs_mag["i"]))/(iso_obj.AX1["r"][11]-iso_obj.AX1["i"][11])
+            guess_set[i][3]=self.mag["r"]- (iso_obj.AX1["r"][11]*guess_set[i][4]+iso_obj.AX2["r"][11]*guess_set[i][4]*guess_set[i][4]+iso_obj.abs_mag["r"])
     
         metal_min=sorted(self.isochrones.metal_dict.keys())[0]
         metal_max=sorted(self.isochrones.metal_dict.keys())[-1]
