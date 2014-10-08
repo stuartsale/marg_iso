@@ -1,7 +1,7 @@
 # Import stuff
 
 import numpy as np
-#import iso_lib as il
+import iso_lib as il
 import sklearn as sk
 import sklearn.cluster as sk_c
 import sklearn.mixture as sk_m
@@ -47,7 +47,7 @@ class star_posterior:
 
     # init function
     
-    def __init__(self, l, b, mag_in, d_mag_in, isochrones):
+    def __init__(self, l, b, mag_in, d_mag_in, isochrones=None):
     
         self.colors = np.array([x for x in 'bgrcmybgrcmybgrcmybgrcmy'])
         self.colors = np.hstack([self.colors] * 20)
@@ -63,7 +63,11 @@ class star_posterior:
         self.mag=mag_in
         self.d_mag=d_mag_in
         
-        self.isochrones=isochrones
+        if isochrones is not None:
+            self.isochrones=isochrones
+        else:
+            self.isochrones=il.iso_grid_tefflogg("/home/sale/work-oxford/isochrones/padova-iso_tefflogg_0214.txt", teff_col=3, logg_col=4, verbose=False)
+            
         self.MCMC_run=False 
         self.best_gmm=None       
         
