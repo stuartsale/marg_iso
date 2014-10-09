@@ -48,6 +48,7 @@ class star_posterior:
     # init function
     
     def __init__(self, l, b, mag_in, d_mag_in, isochrones=None):
+
     
         self.colors = np.array([x for x in 'bgrcmybgrcmybgrcmybgrcmy'])
         self.colors = np.hstack([self.colors] * 20)
@@ -63,10 +64,9 @@ class star_posterior:
         self.mag=mag_in
         self.d_mag=d_mag_in
         
-        if isochrones is not None:
-            self.isochrones=isochrones
-        else:
-            self.isochrones=il.iso_grid_tefflogg(default_isochrone_file, bands=self.mag.keys(), verbose=False)
+        if isochrones is None:
+            isochrones=il.iso_grid_tefflogg(default_isochrone_file, bands=self.mag.keys())
+        self.isochrones=isochrones
             
         self.MCMC_run=False 
         self.best_gmm=None       
