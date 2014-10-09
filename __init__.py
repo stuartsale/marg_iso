@@ -28,9 +28,9 @@ def emcee_prob(params, star):
         A=math.exp(params[4])
         dist=pow(10., params[3]/5.+1.)    
         R_gal=math.sqrt( 8000*8000+pow(dist*star.cosb,2)-2*8000*dist*star.cosb*star.cosl )
-        prob= math.log(iso_obj.Jac) + 3*math.log(dist) - dist/2500. -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
+        prob= math.log(iso_obj.Jac) -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
                 -pow(params[0]+(R_gal-8000.)*0.00007,2)/(2*0.0625) \
-                -pow(params[5]-3.1,2)/(0.08)
+                -pow(params[5]-3.1,2)/(0.08) #+ 3*math.log(dist) - dist/2500.
                 
         for band in star.mag.keys():
             prob-= pow(star.mag[band]-(iso_obj.abs_mag[band]+params[3]+iso_obj.AX(band, A, params[5]) ) 
