@@ -12,7 +12,18 @@ import math
 
 from scipy import linalg
 
-default_isochrone_file="/home/sale/work-oxford/isochrones/padova-iso_tefflogg_0214.txt"
+#fig_width_pt = 240.0  # Get this from LaTeX using \showthe\columnwidth
+#inches_per_pt = 1.0/72.27               # Convert pt to inch
+#golden_mean = (math.sqrt(5)-1.0)/2.0         # Aesthetic ratio
+#fig_width = fig_width_pt*inches_per_pt  # width in inches
+#fig_height = fig_width*golden_mean      # height in inches
+#fig_size =  [fig_width,fig_height]
+#params = {'backend': 'ps', 'axes.labelsize': 10,'text.fontsize': 10, 'legend.fontsize': 10, 'xtick.labelsize': 8, 'ytick.labelsize': 8,
+#	 'text.usetex': True, 'figure.figsize': fig_size, 'font.weight': "bold", 'ytick.major.pad': 10, 'xtick.major.pad':10, 'axes.titlesize':10, 'ps.distiller.res'  : 24000}#, 'text.latex.preamble' : r'\usepackage{bm}'}
+#mpl.rcParams.update(params)
+#mpl.rc("text.latex", preamble="\usepackage{bm}")
+
+default_isochrone_file="/home/sale/work-oxford/isochrones//Padova/1410_padova/padova_iphas-ukidss_141022.txt"
 
 def emcee_prob(params, star):
             
@@ -25,18 +36,22 @@ def emcee_prob(params, star):
         return -np.inf
         
     else:
-        A=math.exp(params[4])
-        dist=pow(10., params[3]/5.+1.)    
-        R_gal=math.sqrt( 8000*8000+pow(dist*star.cosb,2)-2*8000*dist*star.cosb*star.cosl )
-        prob= math.log(iso_obj.Jac) -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
-                -pow(params[0]+(R_gal-8000.)*0.00007,2)/(2*0.0625) \
-                -pow(params[5]-3.1,2)/(0.08) #+ 3*math.log(dist) - dist/2500.
-                
-        for band in star.mag.keys():
-            prob-= pow(star.mag[band]-(iso_obj.abs_mag[band]+params[3]+iso_obj.AX(band, A, params[5]) ) 
-                    ,2)/(2*star.d_mag[band]*star.d_mag[band])
-        
-        return prob
+        try:
+            A=math.exp(params[4])
+            dist=pow(10., params[3]/5.+1.)    
+            R_gal=math.sqrt( 8000*8000+pow(dist*star.cosb,2)-2*8000*dist*star.cosb*star.cosl )
+            prob= math.log(iso_obj.Jac) -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
+                    -pow(params[0]+(R_gal-8000.)*0.00007,2)/(2*0.0625) \
+                    -pow(params[5]-3.1,2)/(0.08) #+ 3*math.log(dist) - dist/2500.
+                    
+            for band in star.mag.keys():
+                prob-= pow(star.mag[band]-(iso_obj.abs_mag[band]+params[3]+iso_obj.AX(band, A, params[5]) ) 
+                        ,2)/(2*star.d_mag[band]*star.d_mag[band])
+            
+            return prob
+            
+        except OverflowError:
+            return -np.inf
                 
                 #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.  
                 
@@ -245,8 +260,8 @@ class star_posterior:
         
         for i in range(len(guess_set)):
             iso_obj=self.isochrones.query(guess_set[i][0], guess_set[i][1], guess_set[i][2])
-            guess_set[i][4]=((self.mag["r"]-self.mag["i"])-(iso_obj.abs_mag["r"]-iso_obj.abs_mag["i"]))/(iso_obj.AX1["r"][11]-iso_obj.AX1["i"][11])
-            guess_set[i][3]=self.mag["r"]- (iso_obj.AX1["r"][11]*guess_set[i][4]+iso_obj.AX2["r"][11]*guess_set[i][4]*guess_set[i][4]+iso_obj.abs_mag["r"])
+            guess_set[i][4]=((self.mag["r_IPHAS"]-self.mag["i_IPHAS"])-(iso_obj.abs_mag["r_IPHAS"]-iso_obj.abs_mag["i_IPHAS"]))/(iso_obj.AX1["r_IPHAS"][11]-iso_obj.AX1["i_IPHAS"][11])
+            guess_set[i][3]=self.mag["r_IPHAS"]- (iso_obj.AX1["r_IPHAS"][11]*guess_set[i][4]+iso_obj.AX2["r_IPHAS"][11]*guess_set[i][4]*guess_set[i][4]+iso_obj.abs_mag["r_IPHAS"])
     
         metal_min=sorted(self.isochrones.metal_dict.keys())[0]
         metal_max=sorted(self.isochrones.metal_dict.keys())[-1]
@@ -274,7 +289,7 @@ class star_posterior:
         self.itnum_chain=np.zeros(chain_length)            
             
             
-    def emcee_run(self, iterations=10000, thin=10, burn_in=2000, N_walkers=50, prune=True, cluster_plot=False):
+    def emcee_run(self, iterations=10000, thin=10, burn_in=2000, N_walkers=50, prune=True, prune_plot=False):
     
         self.emcee_init(N_walkers, (iterations-burn_in)/thin*N_walkers)
     
@@ -285,19 +300,29 @@ class star_posterior:
  
         if prune:        
             dbscan = sk_c.DBSCAN(eps=0.05)
-            pos, last_prob, state = sampler.run_mcmc(pos, 10, rstate0=state, lnprob0=last_prob)     # pruning set
+            pos, last_prob, state = sampler.run_mcmc(pos, 100, rstate0=state, lnprob0=last_prob)     # pruning set
             dbscan.fit(sampler.flatchain[:,1:2])
             labels=dbscan.labels_.astype(np.int)
             
-            if cluster_plot:
+            if prune_plot:
 
                 fig=plt.figure()
-                ax1=fig.add_subplot(111)
+                ax1=fig.add_subplot(221)
                 
                 print "num points = ",sampler.flatchain[:,1].size
                 
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color=self.colors[labels].tolist(),)
-                plt.show()
+                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
+                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
+                ax1.set_xlim(right=3.5, left=4.5)                 
+                ax1.set_ylim(bottom=5., top=2.)
+                
+                ax1=fig.add_subplot(223)
+                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
+                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+                ax1.set_xlim(right=3.5, left=4.5)                                   
+
+                
+#                plt.show()
             
             mean_ln_prob=np.mean(sampler.flatlnprobability)
             cl_list=[]
@@ -313,6 +338,25 @@ class star_posterior:
                 cluster=np.random.choice(np.max(labels)+1, p=weights_list/np.sum(weights_list))
                 index=int( np.random.uniform()*len(cl_list[cluster]) )
                 pos[i,:]=cl_list[cluster].data[index,:]
+                
+            if prune_plot:       
+                ax1=fig.add_subplot(222)
+                
+                print "num points = ",sampler.flatchain[:,1].size
+                
+                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
+                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
+                ax1.set_xlim(right=3.5, left=4.5)                 
+                ax1.set_ylim(bottom=5., top=2.)                               
+                
+                ax1=fig.add_subplot(224)
+                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
+                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+                ax1.set_xlim(right=3.5, left=4.5)                
+                
+                plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.6)                
+#                plt.show()                     
+                plt.savefig("prune.pdf")
             
             sampler.reset()
 
@@ -336,9 +380,9 @@ class star_posterior:
                     try:
                         iso_obj=self.isochrones.query(pos[n,0], pos[n,1], pos[n,2])
                         A=np.exp(pos[n,4])
-                        self.r_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["r"]#+pos[n,3]+iso_obj.vr*A+iso_obj.ur*A*A
-                        self.i_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["i"]#+pos[n,3]+iso_obj.vi*A+iso_obj.ui*A*A
-                        self.ha_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["Ha"]#+pos[n,3]+iso_obj.vha*A+iso_obj.uha*A*A
+                        self.r_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["r_IPHAS"]#+pos[n,3]+iso_obj.AX("r", math.exp(pos[n,4]), pos[n,5])
+                        self.i_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["i_IPHAS"]#+pos[n,3]+iso_obj.AX("i", math.exp(pos[n,4]), pos[n,5])
+                        self.ha_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["Ha_IPHAS"]#+pos[n,3]+iso_obj.AX("Ha", math.exp(pos[n,4]), pos[n,5])
                         
                         
                     except IndexError:
@@ -425,7 +469,7 @@ class star_posterior:
             angle = np.arctan2(w[0][1], w[0][0])
             angle = 180 * angle / np.pi  # convert to degrees
             v *= 4
-            ell = mpl.patches.Ellipse(self.best_gmm.means_[it], v[0], v[1], 180 + angle, color=self.colors[it])
+            ell = mpl.patches.Ellipse(self.best_gmm.means_[it], v[0], v[1], 180 + angle, ec=self.colors[it], fc='none', lw=3)
             ell.set_clip_box(ax1.bbox)
             ell.set_alpha(.5)
             ax1.add_artist(ell)
