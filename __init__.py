@@ -396,10 +396,10 @@ class star_posterior:
     def gmm_fit(self):
     
         if self.MCMC_run:
-            fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
+            fit_points=np.array([self.dist_mod_chain, self.logA_chain, self.RV_chain]).T
             print fit_points.shape
             best_bic=+np.infty
-            for n_components in range(1,11):
+            for n_components in range(1,6):
                 gmm = sk_m.GMM(n_components=n_components, covariance_type='full',min_covar=0.05)
                 gmm.fit(fit_points)
                 if gmm.bic(fit_points)<best_bic-10:
