@@ -400,7 +400,7 @@ class star_posterior:
             print fit_points.shape
             best_bic=+np.infty
             for n_components in range(1,6):
-                gmm = sk_m.GMM(n_components=n_components, covariance_type='full',min_covar=0.05)
+                gmm = sk_m.GMM(n_components=n_components, covariance_type='full',min_covar=0.0001)
                 gmm.fit(fit_points)
                 if gmm.bic(fit_points)<best_bic-10:
                     best_bic=gmm.bic(fit_points)
