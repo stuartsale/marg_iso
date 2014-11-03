@@ -252,11 +252,19 @@ class star_posterior:
         guess_set.append([0.,3.949 ,4.20 ,0.,0.,3.1]);	#A3V
         guess_set.append([0.,3.961 ,4.16 ,0.,0.,3.1]);	#A2V
         
-#        guess_set.append([0.,3.763 ,3.20 ,0.,0.]);	#G2III
-#        guess_set.append([0.,3.700 ,2.75 ,0.,0.]);	#G8III
-#        guess_set.append([0.,3.663 ,2.52 ,0.,0.]);	#K1III
-#        guess_set.append([0.,3.602 ,1.25 ,0.,0.]);	#K5III
-#        guess_set.append([0.,3.591 ,1.10 ,0.,0.]);	#M0III
+#        guess_set.append([0.,3.763 ,3.20 ,0.,0.,3.1]);	#G2III
+#        guess_set.append([0.,3.700 ,2.75 ,0.,0.,3.1]);	#G8III
+#        guess_set.append([0.,3.663 ,2.52 ,0.,0.,3.1]);	#K1III
+#        guess_set.append([0.,3.602 ,1.25 ,0.,0.,3.1]);	#K5III
+#        guess_set.append([0.,3.591 ,1.10 ,0.,0.,3.1]);	#M0III
+
+        guess_set.append([0.,3.760 ,4.00 ,0.,0.,3.1]);	#horizontal branch
+        guess_set.append([0.,3.720 ,3.80 ,0.,0.,3.1]);	#
+        guess_set.append([0.,3.680 ,3.00 ,0.,0.,3.1]);	#
+        guess_set.append([0.,3.700 ,2.75 ,0.,0.,3.1]);	#G8III
+        guess_set.append([0.,3.680 ,2.45 ,0.,0.,3.1]);	#
+        guess_set.append([0.,3.600 ,1.20 ,0.,0.,3.1]);	#K5III
+        guess_set.append([0.,3.580 ,0.30 ,0.,0.,3.1]);	#K5III
         
         for i in range(len(guess_set)):
             iso_obj=self.isochrones.query(guess_set[i][0], guess_set[i][1], guess_set[i][2])
@@ -309,7 +317,7 @@ class star_posterior:
                 fig=plt.figure()
                 ax1=fig.add_subplot(221)
                 
-                print "num points = ",sampler.flatchain[:,1].size
+#                print "num points = ",sampler.flatchain[:,1].size
                 
                 ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
                 ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
@@ -332,7 +340,7 @@ class star_posterior:
                 cl_list.append(posterior_cluster(sampler.flatchain[labels==cl_it,:], sampler.flatlnprobability[labels==cl_it]-mean_ln_prob))
                 weights_sum+= cl_list[-1].weight
                 weights_list.append(cl_list[-1].weight)
-            print weights_sum
+#            print weights_sum
             
             for i in range(N_walkers):
                 cluster=np.random.choice(np.max(labels)+1, p=weights_list/np.sum(weights_list))
@@ -342,7 +350,7 @@ class star_posterior:
             if prune_plot:       
                 ax1=fig.add_subplot(222)
                 
-                print "num points = ",sampler.flatchain[:,1].size
+#                print "num points = ",sampler.flatchain[:,1].size
                 
                 ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
                 ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
