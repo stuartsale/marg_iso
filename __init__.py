@@ -23,7 +23,7 @@ from scipy import linalg
 #mpl.rcParams.update(params)
 #mpl.rc("text.latex", preamble="\usepackage{bm}")
 
-default_isochrone_file="/home/sale/work-oxford/isochrones//Padova/1410_padova/padova_iphas-ukidss_141022.txt"
+default_isochrone_file="/home/sale/work-oxford/isochrones/Padova/1410_padova/padova_iphas-ukidss_141022.txt"
 
 def emcee_prob(params, star):
             
@@ -268,8 +268,8 @@ class star_posterior:
         
         for i in range(len(guess_set)):
             iso_obj=self.isochrones.query(guess_set[i][0], guess_set[i][1], guess_set[i][2])
-            guess_set[i][4]=((self.mag["r_IPHAS"]-self.mag["i_IPHAS"])-(iso_obj.abs_mag["r_IPHAS"]-iso_obj.abs_mag["i_IPHAS"]))/(iso_obj.AX1["r_IPHAS"][11]-iso_obj.AX1["i_IPHAS"][11])
-            guess_set[i][3]=self.mag["r_IPHAS"]- (iso_obj.AX1["r_IPHAS"][11]*guess_set[i][4]+iso_obj.AX2["r_IPHAS"][11]*guess_set[i][4]*guess_set[i][4]+iso_obj.abs_mag["r_IPHAS"])
+            guess_set[i][4]=((self.mag["r_INT"]-self.mag["i_INT"])-(iso_obj.abs_mag["r_INT"]-iso_obj.abs_mag["i_INT"]))/(iso_obj.AX1["r_INT"][11]-iso_obj.AX1["i_INT"][11])
+            guess_set[i][3]=self.mag["r_INT"]- (iso_obj.AX1["r_INT"][11]*guess_set[i][4]+iso_obj.AX2["r_INT"][11]*guess_set[i][4]*guess_set[i][4]+iso_obj.abs_mag["r_INT"])
     
         metal_min=sorted(self.isochrones.metal_dict.keys())[0]
         metal_max=sorted(self.isochrones.metal_dict.keys())[-1]
@@ -388,9 +388,9 @@ class star_posterior:
                     try:
                         iso_obj=self.isochrones.query(pos[n,0], pos[n,1], pos[n,2])
                         A=np.exp(pos[n,4])
-                        self.r_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["r_IPHAS"]#+pos[n,3]+iso_obj.AX("r", math.exp(pos[n,4]), pos[n,5])
-                        self.i_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["i_IPHAS"]#+pos[n,3]+iso_obj.AX("i", math.exp(pos[n,4]), pos[n,5])
-                        self.ha_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["Ha_IPHAS"]#+pos[n,3]+iso_obj.AX("Ha", math.exp(pos[n,4]), pos[n,5])
+                        self.r_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["r_INT"]#+pos[n,3]+iso_obj.AX("r", math.exp(pos[n,4]), pos[n,5])
+                        self.i_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["i_INT"]#+pos[n,3]+iso_obj.AX("i", math.exp(pos[n,4]), pos[n,5])
+                        self.ha_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["Ha_INT"]#+pos[n,3]+iso_obj.AX("Ha", math.exp(pos[n,4]), pos[n,5])
                         
                         
                     except IndexError:
