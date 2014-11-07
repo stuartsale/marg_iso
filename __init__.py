@@ -401,13 +401,13 @@ class star_posterior:
     # ==============================================================                        
     # Fit Gaussians
     
-    def gmm_fit(self):
+    def gmm_fit(self, max_components=10):
     
         if self.MCMC_run:
             fit_points=np.array([self.dist_mod_chain, self.logA_chain, self.RV_chain]).T
             print fit_points.shape
             best_bic=+np.infty
-            for n_components in range(1,6):
+            for n_components in range(1,max_components+1):
                 gmm = sk_m.GMM(n_components=n_components, covariance_type='full',min_covar=0.0001)
                 gmm.fit(fit_points)
                 if gmm.bic(fit_points)<best_bic-10:
