@@ -50,7 +50,7 @@ class star_posterior:
 
     # init function
     
-    def __init__(self, l, b, mag_in, d_mag_in, isochrones=None, isochrone_file=None):
+    def __init__(self, l, b, mag_in, d_mag_in, isochrones=None, isochrone_file=None, init_bands=None):
 
     
         self.colors = np.array([x for x in 'bgrcmybgrcmybgrcmybgrcmy'])
@@ -66,6 +66,11 @@ class star_posterior:
     
         self.mag=mag_in
         self.d_mag=d_mag_in
+        
+        if init_bands is None:
+            self.init_bands=self.mag.keys()[:2]
+        else:
+            self.init_bands=init_bands
         
         if isochrones is None:
             if isochrone_file is not None:
@@ -257,8 +262,11 @@ class star_posterior:
         
         for i in range(len(guess_set)):
             iso_obj=self.isochrones.query(guess_set[i][0], guess_set[i][1], guess_set[i][2])
-            guess_set[i][4]=((self.mag["r_INT"]-self.mag["i_INT"])-(iso_obj.abs_mag["r_INT"]-iso_obj.abs_mag["i_INT"]))/(iso_obj.AX1["r_INT"][11]-iso_obj.AX1["i_INT"][11])
-            guess_set[i][3]=self.mag["r_INT"]- (iso_obj.AX1["r_INT"][11]*guess_set[i][4]+iso_obj.AX2["r_INT"][11]*guess_set[i][4]*guess_set[i][4]+iso_obj.abs_mag["r_INT"])
+            guess_set[i][4]=((self.mag[self.init_bands[0]]-self.mag[self.init_bands[1]])
+                            -(iso_obj.abs_mag[self.init_bands[0]]-iso_obj.abs_mag[self.init_bands[1]])) \
+                            /(iso_obj.AX1[self.init_bands[0]][11]-iso_obj.AX1[self.init_bands[1]][11])
+            guess_set[i][3]=self.mag[self.init_bands[0]] - (iso_obj.AX1[self.init_bands[0]][11]*guess_set[i][4]
+                            +iso_obj.AX2[self.init_bands[0]][11]*guess_set[i][4]*guess_set[i][4]+iso_obj.abs_mag[self.init_bands[0]])
     
         metal_min=sorted(self.isochrones.metal_dict.keys())[0]
         metal_max=sorted(self.isochrones.metal_dict.keys())[-1]
@@ -278,10 +286,10 @@ class star_posterior:
         self.prob_chain=np.zeros(chain_length)
         self.prior_chain=np.zeros(chain_length)
         self.Jac_chain=np.zeros(chain_length)
-        
-        self.r_chain=np.zeros(chain_length)
-        self.i_chain=np.zeros(chain_length)
-        self.ha_chain=np.zeros(chain_length)            
+
+        self.photom_chain={}
+        for band in self.mag:
+            self.photom_chain[band]=np.zeros(chain_length)
         
         self.itnum_chain=np.zeros(chain_length)            
             
@@ -371,10 +379,9 @@ class star_posterior:
                     try:
                         iso_obj=self.isochrones.query(pos[n,0], pos[n,1], pos[n,2])
                         A=np.exp(pos[n,4])
-                        self.r_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["r_INT"]#+pos[n,3]+iso_obj.AX("r", math.exp(pos[n,4]), pos[n,5])
-                        self.i_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["i_INT"]#+pos[n,3]+iso_obj.AX("i", math.exp(pos[n,4]), pos[n,5])
-                        self.ha_chain[i/thin*N_walkers+n]=iso_obj.abs_mag["Ha_INT"]#+pos[n,3]+iso_obj.AX("Ha", math.exp(pos[n,4]), pos[n,5])
                         
+                        for band in self.mag:
+                            self.photom_chain[band][i/thin*N_walkers+n]=iso_obj.abs_mag[band]
                         
                     except IndexError:
                         print -1E9  
@@ -388,7 +395,7 @@ class star_posterior:
     
         if self.MCMC_run:
             fit_points=np.array([self.dist_mod_chain, self.logA_chain, self.RV_chain]).T
-            print fit_points.shape
+
             best_bic=+np.infty
             for n_components in range(1,max_components+1):
                 gmm = MeanCov_GMM(n_components=n_components, covariance_type='full',min_covar=0.0001)
@@ -435,8 +442,15 @@ class star_posterior:
     # dump chain to text file
         
     def chain_dump(self, filename):
-        X=np.array( [self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.r_chain, self.i_chain, self.ha_chain ]).T
-        np.savetxt(filename, X, header="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\tr\ti\tha\n" )
+        X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain]
+        header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac"
+        for band in self.photom_chain:
+            X.append(self.photom_chain[band])
+            header_txt+="\t{}".format(band)
+        X=np.array(X).T
+        header_txt+="\n"
+
+        np.savetxt(filename, X, header=header_txt )
     
 
     # plot MCMC sample overlaid with gaussian fit in dist_mod x log(A) space
@@ -498,9 +512,8 @@ class posterior_cluster:
         self.probs=probs
         
         self.set_weight()
-        
-        print np.mean(self.data[:,1]), np.mean(self.data[:,2]), self.weight
-        
+
+       
     def __len__(self):
         return self.data.shape[0]
         
