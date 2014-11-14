@@ -2,7 +2,8 @@ import sklearn.mixture as sk_m
 import numpy as np
 
 class MeanCov_GMM(sk_m.GMM):
-""" class to enable GMM fitting starting with mean and covariance
+    """ 
+    Class to enable GMM fitting starting with mean and covariance
     matrices initialised to those of the data.
 
     Uses an affine transformation to transform data to 0 mean and
@@ -10,7 +11,7 @@ class MeanCov_GMM(sk_m.GMM):
     covariances found back to original coordinate system.
     
     All functions and parameters are the same as sklearn.mixture.GMM
-"""     
+    """     
 
        
     def fit(self,X):
