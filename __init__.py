@@ -13,18 +13,7 @@ import math
 from scipy import linalg
 from gmm_extra import MeanCov_GMM
 
-#fig_width_pt = 240.0  # Get this from LaTeX using \showthe\columnwidth
-#inches_per_pt = 1.0/72.27               # Convert pt to inch
-#golden_mean = (math.sqrt(5)-1.0)/2.0         # Aesthetic ratio
-#fig_width = fig_width_pt*inches_per_pt  # width in inches
-#fig_height = fig_width*golden_mean      # height in inches
-#fig_size =  [fig_width,fig_height]
-#params = {'backend': 'ps', 'axes.labelsize': 10,'text.fontsize': 10, 'legend.fontsize': 10, 'xtick.labelsize': 8, 'ytick.labelsize': 8,
-#	 'text.usetex': True, 'figure.figsize': fig_size, 'font.weight': "bold", 'ytick.major.pad': 10, 'xtick.major.pad':10, 'axes.titlesize':10, 'ps.distiller.res'  : 24000}#, 'text.latex.preamble' : r'\usepackage{bm}'}
-#mpl.rcParams.update(params)
-#mpl.rc("text.latex", preamble="\usepackage{bm}")
 
-default_isochrone_file="/home/sale/work-oxford/isochrones/Padova/1410_padova/padova_iphas-ukidss_141022.txt"
 
 def emcee_prob(params, star):
             
@@ -42,8 +31,7 @@ def emcee_prob(params, star):
             dist=pow(10., params[3]/5.+1.)    
             R_gal=math.sqrt( 8000*8000+pow(dist*star.cosb,2)-2*8000*dist*star.cosb*star.cosl )
             prob= math.log(iso_obj.Jac) -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
-                    -pow(params[0]+(R_gal-8000.)*0.00006,2)/(2*0.04) \
-                #    -pow(params[5]-3.1,2)/(0.08) #+ 3*math.log(dist) - dist/2500.
+                    -pow(params[0]+(R_gal-8000.)*0.00006,2)/(2*0.04) 
                     
             for band in star.mag.keys():
                 prob-= pow(star.mag[band]-(iso_obj.abs_mag[band]+params[3]+iso_obj.AX(band, A, params[5]) ) 
@@ -54,8 +42,7 @@ def emcee_prob(params, star):
         except OverflowError:
             return -np.inf
                 
-                #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.  
-                
+               
 
 # Class to contain star's data, chain, etc            
 
@@ -63,7 +50,7 @@ class star_posterior:
 
     # init function
     
-    def __init__(self, l, b, mag_in, d_mag_in, isochrones=None):
+    def __init__(self, l, b, mag_in, d_mag_in, isochrones=None, isochrone_file=None):
 
     
         self.colors = np.array([x for x in 'bgrcmybgrcmybgrcmybgrcmy'])
@@ -81,7 +68,10 @@ class star_posterior:
         self.d_mag=d_mag_in
         
         if isochrones is None:
-            isochrones=il.iso_grid_tefflogg(default_isochrone_file, bands=self.mag.keys())
+            if isochrone_file is not None:
+                isochrones=il.iso_grid_tefflogg(isochrone_file, bands=self.mag.keys())
+            else:
+                raise IOError("Either an isochrone must be provided or a filename for one given")
         self.isochrones=isochrones
             
         self.MCMC_run=False 
@@ -145,7 +135,7 @@ class star_posterior:
         dist=pow(10., self.last_dist_mod/5.+1.)
         R_gal=np.sqrt( 8000*8000+np.power(dist*self.cosb,2)-2*8000*dist*self.cosb*self.cosl )        
         self.last_prior=np.log(self.last_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.last_iso_obj.Mi) + 2.3026*self.last_iso_obj.logage + self.last_logA \
-                        -np.power(self.last_iso_obj.feh+(R_gal-8000.)*0.00007,2)/(2*0.0625) #3*0.4605*(self.last_dist_mod+5) + self.last_logA - pow(10., self.last_dist_mod/5.+1.)/2500.
+                        -np.power(self.last_iso_obj.feh+(R_gal-8000.)*0.00007,2)/(2*0.0625) 
         
     # find prior prob of test param set
     
@@ -153,7 +143,7 @@ class star_posterior:
         dist=pow(10., self.test_dist_mod/5.+1.)
         R_gal=np.sqrt( 8000*8000+np.power(dist*self.cosb,2)-2*8000*dist*self.cosb*self.cosl )
         self.test_prior=np.log(self.test_iso_obj.Jac) + 3*np.log(dist) - dist/2500. -2.3*np.log(self.test_iso_obj.Mi) + 2.3026*self.test_iso_obj.logage + self.test_logA \
-                        -np.power(self.test_iso_obj.feh+(R_gal-8000.)*0.00007,2)/(2*0.0625) #3*0.4605*(self.test_dist_mod+5) + self.test_logA - pow(10., self.test_dist_mod/5.+1.)/2500.
+                        -np.power(self.test_iso_obj.feh+(R_gal-8000.)*0.00007,2)/(2*0.0625) 
     
     # MCMC sampler
     
@@ -200,8 +190,6 @@ class star_posterior:
                 
                 self.accept+=1
                 
-#            else:
-#                print self.test_prob, self.last_prob
             
             # store in chain 
             
@@ -318,7 +306,6 @@ class star_posterior:
                 fig=plt.figure()
                 ax1=fig.add_subplot(221)
                 
-#                print "num points = ",sampler.flatchain[:,1].size
                 
                 ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
                 ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
@@ -330,8 +317,6 @@ class star_posterior:
                 ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
                 ax1.set_xlim(right=3.5, left=4.5)                                   
 
-                
-#                plt.show()
             
             mean_ln_prob=np.mean(sampler.flatlnprobability)
             cl_list=[]
@@ -341,7 +326,6 @@ class star_posterior:
                 cl_list.append(posterior_cluster(sampler.flatchain[labels==cl_it,:], sampler.flatlnprobability[labels==cl_it]-mean_ln_prob))
                 weights_sum+= cl_list[-1].weight
                 weights_list.append(cl_list[-1].weight)
-#            print weights_sum
             
             for i in range(N_walkers):
                 cluster=np.random.choice(np.max(labels)+1, p=weights_list/np.sum(weights_list))
@@ -351,7 +335,6 @@ class star_posterior:
             if prune_plot:       
                 ax1=fig.add_subplot(222)
                 
-#                print "num points = ",sampler.flatchain[:,1].size
                 
                 ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
                 ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
@@ -364,7 +347,6 @@ class star_posterior:
                 ax1.set_xlim(right=3.5, left=4.5)                
                 
                 plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.6)                
-#                plt.show()                     
                 plt.savefig("prune.pdf")
             
             sampler.reset()
@@ -429,7 +411,7 @@ class star_posterior:
             for covar in self.best_gmm._get_covars():
                 covar_roots.append(np.linalg.cholesky(covar))
             
-            self.gmm_sample=self.best_gmm.means_[components]  #+ np.dot(self.best_gmm._get_covars()[0], np.random.normal(size=(2, num_samples)) ).T
+            self.gmm_sample=self.best_gmm.means_[components]  
             for it in range(components.size):
                 self.gmm_sample[it,:]+=np.dot(covar_roots[components[it]], np.random.normal(size=(2, 1) )).flatten()
             
