@@ -11,6 +11,7 @@ import emcee
 import math
 
 from scipy import linalg
+from gmm_extra import MeanCov_GMM
 
 #fig_width_pt = 240.0  # Get this from LaTeX using \showthe\columnwidth
 #inches_per_pt = 1.0/72.27               # Convert pt to inch
@@ -408,7 +409,7 @@ class star_posterior:
             print fit_points.shape
             best_bic=+np.infty
             for n_components in range(1,max_components+1):
-                gmm = sk_m.GMM(n_components=n_components, covariance_type='full',min_covar=0.0001)
+                gmm = MeanCov_GMM(n_components=n_components, covariance_type='full',min_covar=0.0001)
                 gmm.fit(fit_points)
                 if gmm.bic(fit_points)<best_bic-10:
                     best_bic=gmm.bic(fit_points)
