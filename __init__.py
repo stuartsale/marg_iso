@@ -20,27 +20,33 @@ def emcee_prob(params, star):
     try:
         iso_obj=star.isochrones.query(params[0], params[1], params[2])
     except IndexError:
-        return -np.inf
+        return -np.inf+np.zeros(params.shape[1])
         
-    if iso_obj.Jac==0 or params[5]<2.05 or params[5]>5.05:
-        return -np.inf
+#    if iso_obj.Jac==0 or params[5]<2.05 or params[5]>5.05:
+#        return -np.inf
+#        
+#    else:
+    try:
+#        if params[4]<-5:
+#            return -np.inf
+        A=np.exp(params[4])
+        dist=np.power(10., params[3]/5.+1.)    
+        R_gal=np.sqrt( 8000*8000+np.power(dist*star.cosb,2)-2*8000*dist*star.cosb*star.cosl )
+        prob= np.log(iso_obj.Jac) -2.3*np.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
+                -np.power(params[0]+(R_gal-8000.)*0.00006,2)/(2*0.04) 
+                
+        for band in star.mag.keys():
+            prob-= np.power(star.mag[band]-(iso_obj.abs_mag[band]+params[3]+iso_obj.AX(band, A, params[5]) ) 
+                    ,2)/(2*star.d_mag[band]*star.d_mag[band])
+
+        prob[iso_obj.Jac==0]=-np.inf
+        prob[np.logical_or(params[5]<2.05, params[5]>5.05)]=-np.inf
+        prob[params[4]<-5]=-np.inf
         
-    else:
-        try:
-            A=math.exp(params[4])
-            dist=pow(10., params[3]/5.+1.)    
-            R_gal=math.sqrt( 8000*8000+pow(dist*star.cosb,2)-2*8000*dist*star.cosb*star.cosl )
-            prob= math.log(iso_obj.Jac) -2.3*math.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
-                    -pow(params[0]+(R_gal-8000.)*0.00006,2)/(2*0.04) 
-                    
-            for band in star.mag.keys():
-                prob-= pow(star.mag[band]-(iso_obj.abs_mag[band]+params[3]+iso_obj.AX(band, A, params[5]) ) 
-                        ,2)/(2*star.d_mag[band]*star.d_mag[band])
-            
-            return prob
-            
-        except OverflowError:
-            return -np.inf
+        return prob
+        
+    except OverflowError:
+        return -np.inf
                 
                
 
