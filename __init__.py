@@ -22,13 +22,13 @@ def emcee_prob(params, star):
     except IndexError:
         return -np.inf+np.zeros(params.shape[1])
         
-#    if iso_obj.Jac==0 or params[5]<2.05 or params[5]>5.05:
-#        return -np.inf
-#        
-#    else:
+    R_out_of_bounds=np.logical_or(params[5]<2.05, params[5]>5.05)
+    params[5,R_out_of_bounds]=3.1
+    
     try:
-#        if params[4]<-5:
-#            return -np.inf
+        a_out_of_bounds=params[4]<-5
+        params[4,a_out_of_bounds]=-5
+        
         A=np.exp(params[4])
         dist=np.power(10., params[3]/5.+1.)    
         R_gal=np.sqrt( 8000*8000+np.power(dist*star.cosb,2)-2*8000*dist*star.cosb*star.cosl )
@@ -42,6 +42,9 @@ def emcee_prob(params, star):
         prob[iso_obj.Jac==0]=-np.inf
         prob[np.logical_or(params[5]<2.05, params[5]>5.05)]=-np.inf
         prob[params[4]<-5]=-np.inf
+        
+        all_out_of_bounds=np.logical_or(R_out_of_bounds, a_out_of_bounds)
+        prob[all_out_of_bounds]=-np.inf
         
         return prob
         
@@ -130,13 +133,14 @@ class star_posterior:
         guess_set.append([0.,3.600 ,1.20 ,0.,0.,3.1]);	#K5III
         guess_set.append([0.,3.580 ,0.30 ,0.,0.,3.1]);	#K5III
         
-        for i in range(len(guess_set)):
-            iso_obj=self.isochrones.query(guess_set[i][0], guess_set[i][1], guess_set[i][2])
-            guess_set[i][4]=((self.mag[self.init_bands[0]]-self.mag[self.init_bands[1]])
-                            -(iso_obj.abs_mag[self.init_bands[0]]-iso_obj.abs_mag[self.init_bands[1]])) \
-                            /(iso_obj.AX1[self.init_bands[0]][11]-iso_obj.AX1[self.init_bands[1]][11])
-            guess_set[i][3]=self.mag[self.init_bands[0]] - (iso_obj.AX1[self.init_bands[0]][11]*guess_set[i][4]
-                            +iso_obj.AX2[self.init_bands[0]][11]*guess_set[i][4]*guess_set[i][4]+iso_obj.abs_mag[self.init_bands[0]])
+        guess_set=np.array(guess_set)
+        
+        iso_objs=self.isochrones.query(guess_set[:,0], guess_set[:,1], guess_set[:,2])
+        guess_set[:,4]=((self.mag[self.init_bands[0]]-self.mag[self.init_bands[1]])
+                            -(iso_objs.abs_mag[self.init_bands[0]]-iso_objs.abs_mag[self.init_bands[1]])) \
+                            /(iso_objs.AX1[self.init_bands[0]][np.arange(guess_set.shape[0]),11]-iso_objs.AX1[self.init_bands[1]][np.arange(guess_set.shape[0]),11])
+        guess_set[:,3]=self.mag[self.init_bands[0]] - (iso_objs.AX1[self.init_bands[0]][np.arange(guess_set.shape[0]),11]*guess_set[:,4]
+                            +iso_objs.AX2[self.init_bands[0]][np.arange(guess_set.shape[0]),11]*guess_set[:,4]*guess_set[:,4]+iso_objs.abs_mag[self.init_bands[0]])
     
         metal_min=sorted(self.isochrones.metal_dict.keys())[0]
         metal_max=sorted(self.isochrones.metal_dict.keys())[-1]
@@ -245,16 +249,13 @@ class star_posterior:
                 
                 self.itnum_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=  i
                 
-                for n in range(N_walkers):
-                    try:
-                        iso_obj=self.isochrones.query(pos[n,0], pos[n,1], pos[n,2])
-                        A=np.exp(pos[n,4])
+                iso_obj=self.isochrones.query(pos[:,0], pos[:,1], pos[:,2])
+                A=np.exp(pos[:,4])
+                
+                for band in self.mag:
+                    self.photom_chain[band][i/thin*N_walkers:(i/thin+1)*N_walkers]=iso_obj.abs_mag[band]
                         
-                        for band in self.mag:
-                            self.photom_chain[band][i/thin*N_walkers+n]=iso_obj.abs_mag[band]
-                        
-                    except IndexError:
-                        print -1E9  
+
                         
         self.MCMC_run=True
                         
