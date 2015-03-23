@@ -150,6 +150,7 @@ class star_posterior:
         self.prob_chain=np.zeros(chain_length)
         self.prior_chain=np.zeros(chain_length)
         self.Jac_chain=np.zeros(chain_length)
+        self.accept_chain=np.zeros(chain_length)        
 
         self.photom_chain={}
         for band in self.mag:
@@ -238,6 +239,7 @@ class star_posterior:
                 self.prob_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]= prob
                 
                 self.itnum_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=  i
+                self.accept_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=sampler.acceptance_fraction                
                 
                 for n in range(N_walkers):
                     try:
@@ -306,8 +308,9 @@ class star_posterior:
     # dump chain to text file
         
     def chain_dump(self, filename):
-        X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain]
-        header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac"
+        X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, 
+                                self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.accept_chain]
+        header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\taccept"
         for band in self.photom_chain:
             X.append(self.photom_chain[band])
             header_txt+="\t{}".format(band)
