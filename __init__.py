@@ -160,6 +160,7 @@ class star_posterior:
         self.prob_chain=np.zeros(chain_length)
         self.prior_chain=np.zeros(chain_length)
         self.Jac_chain=np.zeros(chain_length)
+        self.accept_chain=np.zeros(chain_length)
 
         self.photom_chain={}
         for band in self.mag:
@@ -234,9 +235,9 @@ class star_posterior:
             sampler.reset()
 
         
-        for i, (pos, prob, rstate) in enumerate(sampler.sample(pos, iterations=(iterations-burn_in), storechain=False)):      # proper run
+        for i, (pos, prob, rstate) in enumerate(sampler.sample(self.start_params, iterations=(iterations-burn_in), storechain=False)):      # proper run
         
-            if i%thin==0:
+            if i%thin==0 and i!=0:
             
                 self.feh_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,0]
                 self.Teff_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,1]
@@ -248,6 +249,9 @@ class star_posterior:
                 self.prob_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]= prob
                 
                 self.itnum_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=  i
+                
+                self.accept_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=(sampler.acceptance_fraction*i - 
+                                                                    self.accept_chain[(i/thin-1)*N_walkers:(i/thin)*N_walkers] )
                 
                 iso_obj=self.isochrones.query(pos[:,0], pos[:,1], pos[:,2])
                 A=np.exp(pos[:,4])
@@ -313,8 +317,9 @@ class star_posterior:
     # dump chain to text file
         
     def chain_dump(self, filename):
-        X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain]
-        header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac"
+        X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, 
+                                self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.accept_chain]
+        header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\taccept"
         for band in self.photom_chain:
             X.append(self.photom_chain[band])
             header_txt+="\t{}".format(band)
