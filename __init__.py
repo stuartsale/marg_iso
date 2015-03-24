@@ -169,7 +169,8 @@ class star_posterior:
         self.itnum_chain=np.zeros(chain_length)            
             
             
-    def emcee_run(self, iterations=10000, thin=10, burn_in=2000, N_walkers=50, prune=True, prune_plot=False):
+    def emcee_run(self, iterations=10000, thin=10, burn_in=2000, N_walkers=50, prune=True, prune_plot=False, verbose_chain=True):
+        self.verbose_chain=verbose_chain
     
         self.emcee_init(N_walkers, (iterations-burn_in)/thin*N_walkers)
     
@@ -234,30 +235,42 @@ class star_posterior:
             
             sampler.reset()
 
+        if self.verbose_chain:
         
-        for i, (pos, prob, rstate) in enumerate(sampler.sample(pos, iterations=(iterations-burn_in), storechain=False)):      # proper run
-        
-            if i%thin==0:
+            for i, (pos, prob, rstate) in enumerate(sampler.sample(pos, iterations=(iterations-burn_in), storechain=False)):      # proper run
             
-                self.feh_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,0]
-                self.Teff_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,1]
-                self.logg_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,2]
-                self.dist_mod_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,3]
-                self.logA_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,4]
-                self.RV_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,5]                
+                if i%thin==0:
                 
-                self.prob_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]= prob
-                
-                self.itnum_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=  i
-                
-                self.accept_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=sampler.acceptance_fraction
-                
-                iso_obj=self.isochrones.query(pos[:,0], pos[:,1], pos[:,2])
-                A=np.exp(pos[:,4])
-                
-                for band in self.mag:
-                    self.photom_chain[band][i/thin*N_walkers:(i/thin+1)*N_walkers]=iso_obj.abs_mag[band]
+                    self.feh_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,0]
+                    self.Teff_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,1]
+                    self.logg_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,2]
+                    self.dist_mod_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,3]
+                    self.logA_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,4]
+                    self.RV_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,5]                
+                    
+                    self.prob_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]= prob
+                    
+                    self.itnum_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=  i
+                    
+                    self.accept_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=sampler.acceptance_fraction
+                    
+                    iso_obj=self.isochrones.query(pos[:,0], pos[:,1], pos[:,2])
+#                    A=np.exp(pos[:,4])
+                    
+                    for band in self.mag:
+                        self.photom_chain[band][i/thin*N_walkers:(i/thin+1)*N_walkers]=iso_obj.abs_mag[band]
                         
+        else:
+             pos, last_prob, state = sampler.run_mcmc(pos, iterations-burn_in, thin=thin)   
+             
+             self.feh_chain=sampler.flatchain[:,0]     
+             self.Teff_chain=sampler.flatchain[:,1]     
+             self.logg_chain=sampler.flatchain[:,2]     
+             self.dist_mod_chain=sampler.flatchain[:,3]     
+             self.logA_chain=sampler.flatchain[:,4]    
+             self.RV_chain=sampler.flatchain[:,5]                                                                       
+             
+             self.prob_chain=sampler.flatlnprobability
 
                         
         self.MCMC_run=True
