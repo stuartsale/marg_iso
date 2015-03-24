@@ -17,10 +17,10 @@ from gmm_extra import MeanCov_GMM
 
 def emcee_prob(params, star):
             
-    try:
-        iso_obj=star.isochrones.query(params[0], params[1], params[2])
-    except IndexError:
-        return -np.inf+np.zeros(params.shape[1])
+#    try:
+    iso_obj=star.isochrones.query(params[0], params[1], params[2])
+#    except IndexError:
+#        return -np.inf+np.zeros(params.shape[1])
         
     R_out_of_bounds=np.logical_or(params[5]<2.05, params[5]>5.05)
     params[5,R_out_of_bounds]=3.1
@@ -235,9 +235,9 @@ class star_posterior:
             sampler.reset()
 
         
-        for i, (pos, prob, rstate) in enumerate(sampler.sample(self.start_params, iterations=(iterations-burn_in), storechain=False)):      # proper run
+        for i, (pos, prob, rstate) in enumerate(sampler.sample(pos, iterations=(iterations-burn_in), storechain=False)):      # proper run
         
-            if i%thin==0 and i!=0:
+            if i%thin==0:
             
                 self.feh_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,0]
                 self.Teff_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,1]
@@ -250,8 +250,7 @@ class star_posterior:
                 
                 self.itnum_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=  i
                 
-                self.accept_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=(sampler.acceptance_fraction*i - 
-                                                                    self.accept_chain[(i/thin-1)*N_walkers:(i/thin)*N_walkers] )
+                self.accept_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=sampler.acceptance_fraction
                 
                 iso_obj=self.isochrones.query(pos[:,0], pos[:,1], pos[:,2])
                 A=np.exp(pos[:,4])
