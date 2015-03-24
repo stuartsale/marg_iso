@@ -174,7 +174,7 @@ class star_posterior:
     
         self.emcee_init(N_walkers, (iterations-burn_in)/thin*N_walkers)
     
-        sampler = emcee.EnsembleSampler(N_walkers, 6, emcee_prob, args=[self])
+        sampler = emcee.EnsembleSampler(N_walkers, 6, emcee_prob, args=[self], a=1.5)
         
         pos, last_prob, state = sampler.run_mcmc(self.start_params, burn_in)     # Burn-in
         sampler.reset()
@@ -202,12 +202,12 @@ class star_posterior:
                 ax1.set_xlim(right=3.5, left=4.5)                                   
 
             
-            mean_ln_prob=np.mean(sampler.flatlnprobability)
+            median_ln_prob=np.median(sampler.flatlnprobability)
             cl_list=[]
             weights_list=[]
             weights_sum=0
             for cl_it in range(np.max(labels)+1):
-                cl_list.append(posterior_cluster(sampler.flatchain[labels==cl_it,:], sampler.flatlnprobability[labels==cl_it]-mean_ln_prob))
+                cl_list.append(posterior_cluster(sampler.flatchain[labels==cl_it,:], sampler.flatlnprobability[labels==cl_it]-median_ln_prob))
                 weights_sum+= cl_list[-1].weight
                 weights_list.append(cl_list[-1].weight)
             
