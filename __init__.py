@@ -274,6 +274,191 @@ class star_posterior:
 
                         
         self.MCMC_run=True
+        
+    # ==============================================================
+    # Functions to work with emcee sampler
+    # EnsembleSampler version        
+        
+        
+    def emcee_ES_init(self, N_temps, N_walkers, chain_length):
+    
+        self.start_params=np.zeros([N_temps, N_walkers,6])
+    
+        guess_set=[]
+        guess_set.append([0.,3.663 ,4.57 ,0.,0.,3.1]);	#K4V
+        guess_set.append([0.,3.672 ,4.56 ,0.,0.,3.1]);	#K3V
+        guess_set.append([0.,3.686 ,4.55 ,0.,0.,3.1]);	#K2V
+        guess_set.append([0.,3.695 ,4.55 ,0.,0.,3.1]);	#K1V
+        guess_set.append([0.,3.703 ,4.57 ,0.,0.,3.1]);	#K0V
+        guess_set.append([0.,3.720 ,4.55 ,0.,0.,3.1]);	#G8V
+        guess_set.append([0.,3.740 ,4.49 ,0.,0.,3.1]);	#G5V
+        guess_set.append([0.,3.763 ,4.40 ,0.,0.,3.1]);	#G2V
+        guess_set.append([0.,3.774 ,4.39 ,0.,0.,3.1]);	#G0V
+        guess_set.append([0.,3.789 ,4.35 ,0.,0.,3.1]);	#F8V
+        guess_set.append([0.,3.813 ,4.34 ,0.,0.,3.1]);	#F5V
+        guess_set.append([0.,3.845 ,4.26 ,0.,0.,3.1]);	#F2V
+        guess_set.append([0.,3.863 ,4.28 ,0.,0.,3.1]);	#F0V
+        guess_set.append([0.,3.903 ,4.26 ,0.,0.,3.1]);	#A7V
+        guess_set.append([0.,3.924 ,4.22 ,0.,0.,3.1]);	#A5V
+        guess_set.append([0.,3.949 ,4.20 ,0.,0.,3.1]);	#A3V
+        guess_set.append([0.,3.961 ,4.16 ,0.,0.,3.1]);	#A2V
+        
+#        guess_set.append([0.,3.763 ,3.20 ,0.,0.,3.1]);	#G2III
+#        guess_set.append([0.,3.700 ,2.75 ,0.,0.,3.1]);	#G8III
+#        guess_set.append([0.,3.663 ,2.52 ,0.,0.,3.1]);	#K1III
+#        guess_set.append([0.,3.602 ,1.25 ,0.,0.,3.1]);	#K5III
+#        guess_set.append([0.,3.591 ,1.10 ,0.,0.,3.1]);	#M0III
+
+        guess_set.append([0.,3.760 ,4.00 ,0.,0.,3.1]);	#horizontal branch
+        guess_set.append([0.,3.720 ,3.80 ,0.,0.,3.1]);	#
+        guess_set.append([0.,3.680 ,3.00 ,0.,0.,3.1]);	#
+        guess_set.append([0.,3.700 ,2.75 ,0.,0.,3.1]);	#G8III
+        guess_set.append([0.,3.680 ,2.45 ,0.,0.,3.1]);	#
+        guess_set.append([0.,3.600 ,1.20 ,0.,0.,3.1]);	#K5III
+        guess_set.append([0.,3.580 ,0.30 ,0.,0.,3.1]);	#K5III
+        
+        guess_set=np.array(guess_set)
+        
+        iso_objs=self.isochrones.query(guess_set[:,0], guess_set[:,1], guess_set[:,2])
+        guess_set[:,4]=np.log( ((self.mag[self.init_bands[0]]-self.mag[self.init_bands[1]])
+                            -(iso_objs.abs_mag[self.init_bands[0]]-iso_objs.abs_mag[self.init_bands[1]])) 
+                            /(iso_objs.AX1[self.init_bands[0]][np.arange(guess_set.shape[0]),11]-iso_objs.AX1[self.init_bands[1]][np.arange(guess_set.shape[0]),11]) )
+        guess_set[:,3]=self.mag[self.init_bands[0]] - (iso_objs.AX1[self.init_bands[0]][np.arange(guess_set.shape[0]),11]*guess_set[:,4]
+                            +iso_objs.AX2[self.init_bands[0]][np.arange(guess_set.shape[0]),11]*guess_set[:,4]*guess_set[:,4]+iso_objs.abs_mag[self.init_bands[0]])
+    
+        metal_min=sorted(self.isochrones.metal_dict.keys())[0]
+        metal_max=sorted(self.isochrones.metal_dict.keys())[-1]
+        
+        for it1 in range(N_temps):    
+            for it2 in range(N_walkers):
+                self.start_params[it1,it2,:]=guess_set[int(np.random.uniform()*len(guess_set))]
+                self.start_params[it1,it2,0]=metal_min+(metal_max-metal_min)*np.random.uniform()
+                self.start_params[it1,it2,5]=2.9+0.4*np.random.uniform()
+            
+        self.Teff_chain=np.zeros(chain_length)
+        self.logg_chain=np.zeros(chain_length)
+        self.feh_chain=np.zeros(chain_length)
+        self.dist_mod_chain=np.zeros(chain_length)
+        self.logA_chain=np.zeros(chain_length)
+        self.RV_chain=np.zeros(chain_length)        
+
+        self.prob_chain=np.zeros(chain_length)
+        self.prior_chain=np.zeros(chain_length)
+        self.Jac_chain=np.zeros(chain_length)
+        self.accept_chain=np.zeros(chain_length)
+
+        self.photom_chain={}
+        for band in self.mag:
+            self.photom_chain[band]=np.zeros(chain_length)
+        
+        self.itnum_chain=np.zeros(chain_length)            
+            
+            
+    def emcee_ES_run(self, iterations=10000, thin=10, burn_in=2000, N_temps=4, N_walkers=12, prune=True, prune_plot=False, verbose_chain=True):
+        self.verbose_chain=verbose_chain
+    
+        self.emcee_ES_init(N_temps, N_walkers,  (iterations-burn_in)/thin*N_walkers )
+    
+        sampler = emcee.PTSampler(N_temps, N_walkers, 6, emcee_prob, lambda(x) : np.zeros(x.shape[1]), loglargs=[self], a=1.5)
+        
+        pos, last_prob, state = sampler.run_mcmc(self.start_params, burn_in)     # Burn-in
+        sampler.reset()
+ 
+        if prune:        
+            dbscan = sk_c.DBSCAN(eps=0.05)
+            pos, last_prob, state = sampler.run_mcmc(pos, 100, rstate0=state, lnprob0=last_prob)     # pruning set
+            dbscan.fit(sampler.flatchain[:,1:2])
+            labels=dbscan.labels_.astype(np.int)
+            
+            if prune_plot:
+
+                fig=plt.figure()
+                ax1=fig.add_subplot(221)
+                
+                
+                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
+                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
+                ax1.set_xlim(right=3.5, left=4.5)                 
+                ax1.set_ylim(bottom=5., top=2.)
+                
+                ax1=fig.add_subplot(223)
+                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
+                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+                ax1.set_xlim(right=3.5, left=4.5)                                   
+
+            
+            median_ln_prob=np.median(sampler.flatlnprobability)
+            cl_list=[]
+            weights_list=[]
+            weights_sum=0
+            for cl_it in range(np.max(labels)+1):
+                cl_list.append(posterior_cluster(sampler.flatchain[labels==cl_it,:], sampler.flatlnprobability[labels==cl_it]-median_ln_prob))
+                weights_sum+= cl_list[-1].weight
+                weights_list.append(cl_list[-1].weight)
+            
+            for i in range(N_walkers):
+                cluster=np.random.choice(np.max(labels)+1, p=weights_list/np.sum(weights_list))
+                index=int( np.random.uniform()*len(cl_list[cluster]) )
+                pos[i,:]=cl_list[cluster].data[index,:]
+                
+            if prune_plot:       
+                ax1=fig.add_subplot(222)
+                
+                
+                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
+                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
+                ax1.set_xlim(right=3.5, left=4.5)                 
+                ax1.set_ylim(bottom=5., top=2.)                               
+                
+                ax1=fig.add_subplot(224)
+                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
+                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+                ax1.set_xlim(right=3.5, left=4.5)                
+                
+                plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.6)                
+                plt.savefig("prune.pdf")
+            
+            sampler.reset()
+
+        if self.verbose_chain:
+        
+            for i, (pos, prob, rstate) in enumerate(sampler.sample(pos, iterations=(iterations-burn_in), storechain=False)):      # proper run
+            
+                if i%thin==0:
+                
+                    self.feh_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,0]
+                    self.Teff_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,1]
+                    self.logg_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,2]
+                    self.dist_mod_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,3]
+                    self.logA_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,4]
+                    self.RV_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,5]                
+                    
+                    self.prob_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]= prob[0,:]
+                    
+                    self.itnum_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=  i
+                    
+                    self.accept_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=sampler.acceptance_fraction[0,:]
+                    
+                    iso_obj=self.isochrones.query(pos[0,:,0], pos[0,:,1], pos[0,:,2])
+#                    A=np.exp(pos[:,4])
+                    
+                    for band in self.mag:
+                        self.photom_chain[band][i/thin*N_walkers:(i/thin+1)*N_walkers]=iso_obj.abs_mag[band]
+                        
+        else:
+             pos, last_prob, state = sampler.run_mcmc(pos, iterations-burn_in, thin=thin)   
+             
+             self.feh_chain=sampler.flatchain[:,0]     
+             self.Teff_chain=sampler.flatchain[:,1]     
+             self.logg_chain=sampler.flatchain[:,2]     
+             self.dist_mod_chain=sampler.flatchain[:,3]     
+             self.logA_chain=sampler.flatchain[:,4]    
+             self.RV_chain=sampler.flatchain[:,5]                                                                       
+             
+             self.prob_chain=sampler.flatlnprobability
+
+                        
+        self.MCMC_run=True        
                         
     # ==============================================================                        
     # Fit Gaussians
