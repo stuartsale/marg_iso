@@ -185,21 +185,21 @@ class star_posterior:
             dbscan.fit(sampler.flatchain[:,1:2])
             labels=dbscan.labels_.astype(np.int)
             
-            if prune_plot:
+#            if prune_plot:
 
-                fig=plt.figure()
-                ax1=fig.add_subplot(221)
-                
-                
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
-                ax1.set_xlim(right=3.5, left=4.5)                 
-                ax1.set_ylim(bottom=5., top=2.)
-                
-                ax1=fig.add_subplot(223)
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
-                ax1.set_xlim(right=3.5, left=4.5)                                   
+#                fig=plt.figure()
+#                ax1=fig.add_subplot(221)
+#                
+#                
+#                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
+#                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
+#                ax1.set_xlim(right=3.5, left=4.5)                 
+#                ax1.set_ylim(bottom=5., top=2.)
+#                
+#                ax1=fig.add_subplot(223)
+#                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
+#                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+#                ax1.set_xlim(right=3.5, left=4.5)                                   
 
             
             median_ln_prob=np.median(sampler.flatlnprobability)
@@ -216,22 +216,22 @@ class star_posterior:
                 index=int( np.random.uniform()*len(cl_list[cluster]) )
                 pos[i,:]=cl_list[cluster].data[index,:]
                 
-            if prune_plot:       
-                ax1=fig.add_subplot(222)
-                
-                
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
-                ax1.set_xlim(right=3.5, left=4.5)                 
-                ax1.set_ylim(bottom=5., top=2.)                               
-                
-                ax1=fig.add_subplot(224)
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
-                ax1.set_xlim(right=3.5, left=4.5)                
-                
-                plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.6)                
-                plt.savefig("prune.pdf")
+#            if prune_plot:       
+#                ax1=fig.add_subplot(222)
+#                
+#                
+#                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
+#                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
+#                ax1.set_xlim(right=3.5, left=4.5)                 
+#                ax1.set_ylim(bottom=5., top=2.)                               
+#                
+#                ax1=fig.add_subplot(224)
+#                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
+#                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+#                ax1.set_xlim(right=3.5, left=4.5)                
+#                
+#                plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.6)                
+#                plt.savefig("prune.pdf")
             
             sampler.reset()
 
@@ -370,21 +370,21 @@ class star_posterior:
             dbscan.fit(sampler.flatchain[:,1:2])
             labels=dbscan.labels_.astype(np.int)
             
-            if prune_plot:
+#            if prune_plot:
 
-                fig=plt.figure()
-                ax1=fig.add_subplot(221)
-                
-                
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
-                ax1.set_xlim(right=3.5, left=4.5)                 
-                ax1.set_ylim(bottom=5., top=2.)
-                
-                ax1=fig.add_subplot(223)
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
-                ax1.set_xlim(right=3.5, left=4.5)                                   
+#                fig=plt.figure()
+#                ax1=fig.add_subplot(221)
+#                
+#                
+#                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
+#                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
+#                ax1.set_xlim(right=3.5, left=4.5)                 
+#                ax1.set_ylim(bottom=5., top=2.)
+#                
+#                ax1=fig.add_subplot(223)
+#                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
+#                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+#                ax1.set_xlim(right=3.5, left=4.5)                                   
 
             
             median_ln_prob=np.median(sampler.flatlnprobability)
@@ -401,22 +401,22 @@ class star_posterior:
                 index=int( np.random.uniform()*len(cl_list[cluster]) )
                 pos[i,:]=cl_list[cluster].data[index,:]
                 
-            if prune_plot:       
-                ax1=fig.add_subplot(222)
-                
-                
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
-                ax1.set_xlim(right=3.5, left=4.5)                 
-                ax1.set_ylim(bottom=5., top=2.)                               
-                
-                ax1=fig.add_subplot(224)
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
-                ax1.set_xlim(right=3.5, left=4.5)                
-                
-                plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.6)                
-                plt.savefig("prune.pdf")
+#            if prune_plot:       
+#                ax1=fig.add_subplot(222)
+#                
+#                
+#                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
+#                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
+#                ax1.set_xlim(right=3.5, left=4.5)                 
+#                ax1.set_ylim(bottom=5., top=2.)                               
+#                
+#                ax1=fig.add_subplot(224)
+#                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
+#                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+#                ax1.set_xlim(right=3.5, left=4.5)                
+#                
+#                plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.6)                
+#                plt.savefig("prune.pdf")
             
             sampler.reset()
 
