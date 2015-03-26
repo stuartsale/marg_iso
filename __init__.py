@@ -511,20 +511,20 @@ class star_posterior:
 #        ax1.scatter(self.dist_mod_chain, self.logA_chain, marker='.')
 #        plt.show()
 
-#    # dump chain to text file
-#        
-#    def chain_dump(self, filename):
-#        X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, 
-#                                self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.accept_chain]
-#        header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\taccept"
-#        for band in self.photom_chain:
-#            X.append(self.photom_chain[band])
-#            header_txt+="\t{}".format(band)
-#        X=np.array(X).T
-#        header_txt+="\n"
+    # dump chain to text file
+        
+    def chain_dump(self, filename):
+        X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, 
+                                self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.accept_chain]
+        header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\taccept"
+        for band in self.photom_chain:
+            X.append(self.photom_chain[band])
+            header_txt+="\t{}".format(band)
+        X=np.array(X).T
+        header_txt+="\n"
 
-#        np.savetxt(filename, X, header=header_txt )
-#    
+        np.savetxt(filename, X, header=header_txt )
+    
 
 #    # plot MCMC sample overlaid with gaussian fit in dist_mod x log(A) space
 #    
