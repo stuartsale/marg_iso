@@ -513,13 +513,21 @@ class star_posterior:
 
     # dump chain to text file
         
-    def chain_dump(self, filename):
-        X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, 
-                                self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.accept_chain]
-        header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\taccept"
-        for band in self.photom_chain:
-            X.append(self.photom_chain[band])
-            header_txt+="\t{}".format(band)
+    def chain_dump(self, filename, thin=None):
+        if thin is None:
+            X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, 
+                                    self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.accept_chain]
+            header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\taccept"
+            for band in self.photom_chain:
+                X.append(self.photom_chain[band])
+                header_txt+="\t{}".format(band)
+        else:
+            X=[self.itnum_chain[::thin], self.Teff_chain[::thin], self.logg_chain[::thin], self.feh_chain[::thin], self.dist_mod_chain[::thin], self.logA_chain[::thin], 
+                                    self.RV_chain[::thin], self.prob_chain[::thin], self.prior_chain[::thin], self.Jac_chain[::thin], self.accept_chain[::thin] ]
+            header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\taccept"
+            for band in self.photom_chain:
+                X.append(self.photom_chain[band][::thin])
+                header_txt+="\t{}".format(band)            
         X=np.array(X).T
         header_txt+="\n"
 
