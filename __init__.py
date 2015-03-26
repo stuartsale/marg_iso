@@ -5,8 +5,8 @@ import iso_lib as il
 import sklearn as sk
 import sklearn.cluster as sk_c
 import sklearn.mixture as sk_m
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+#import matplotlib as mpl
+#import matplotlib.pyplot as plt
 import emcee
 import math
 
@@ -458,7 +458,7 @@ class star_posterior:
              self.prob_chain=sampler.flatlnprobability
 
                         
-        self.MCMC_run=True        
+        self.MCMC_run=True 
                         
     # ==============================================================                        
     # Fit Gaussians
@@ -502,78 +502,78 @@ class star_posterior:
     # ==============================================================                        
     # Auxilary functions
     
-    # plot the MCMC sample on the ln(s) ln(A) plane
-    
-    def plot_MCMCsample(self):
-        fig=plt.figure()
-        ax1=fig.add_subplot(111)
-        
-        ax1.scatter(self.dist_mod_chain, self.logA_chain, marker='.')
-        plt.show()
+#    # plot the MCMC sample on the ln(s) ln(A) plane
+#    
+#    def plot_MCMCsample(self):
+#        fig=plt.figure()
+#        ax1=fig.add_subplot(111)
+#        
+#        ax1.scatter(self.dist_mod_chain, self.logA_chain, marker='.')
+#        plt.show()
 
-    # dump chain to text file
-        
-    def chain_dump(self, filename):
-        X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, 
-                                self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.accept_chain]
-        header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\taccept"
-        for band in self.photom_chain:
-            X.append(self.photom_chain[band])
-            header_txt+="\t{}".format(band)
-        X=np.array(X).T
-        header_txt+="\n"
+#    # dump chain to text file
+#        
+#    def chain_dump(self, filename):
+#        X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, 
+#                                self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.accept_chain]
+#        header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\taccept"
+#        for band in self.photom_chain:
+#            X.append(self.photom_chain[band])
+#            header_txt+="\t{}".format(band)
+#        X=np.array(X).T
+#        header_txt+="\n"
 
-        np.savetxt(filename, X, header=header_txt )
-    
+#        np.savetxt(filename, X, header=header_txt )
+#    
 
-    # plot MCMC sample overlaid with gaussian fit in dist_mod x log(A) space
-    
-    def plot_MCMCsample_gaussians(self):
-        fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
-        Y_=self.best_gmm.predict(fit_points)
-        
+#    # plot MCMC sample overlaid with gaussian fit in dist_mod x log(A) space
+#    
+#    def plot_MCMCsample_gaussians(self):
+#        fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
+#        Y_=self.best_gmm.predict(fit_points)
+#        
 
-    
-        fig=plt.figure()
-        ax1=fig.add_subplot(111)
-        
-        for it in range(self.best_gmm.weights_.size):
-            ax1.scatter(fit_points[Y_==it,0], fit_points[Y_==it,1], marker='.', color=self.colors[it])
+#    
+#        fig=plt.figure()
+#        ax1=fig.add_subplot(111)
+#        
+#        for it in range(self.best_gmm.weights_.size):
+#            ax1.scatter(fit_points[Y_==it,0], fit_points[Y_==it,1], marker='.', color=self.colors[it])
 
-            # Plot an ellipse to show the Gaussian component            
-            
-            v, w = linalg.eigh(self.best_gmm._get_covars()[it])
-            
-            angle = np.arctan2(w[0][1], w[0][0])
-            angle = 180 * angle / np.pi  # convert to degrees
-            v *= 4
-            ell = mpl.patches.Ellipse(self.best_gmm.means_[it], v[0], v[1], 180 + angle, ec=self.colors[it], fc='none', lw=3)
-            ell.set_clip_box(ax1.bbox)
-            ell.set_alpha(.5)
-            ax1.add_artist(ell)
-        plt.show()
-        
-    def compare_MCMC_hist(self):
-        fig=plt.figure()
-        ax1=fig.add_subplot(111) 
-        
-        bins=np.arange(8.,17.5, 0.25)
-        
-        ax1.hist(self.dist_mod_chain, bins, histtype='step', ec='k')
-        
-        x=np.arange(np.min(self.dist_mod_chain), np.max(self.dist_mod_chain), 0.1)
-        y=np.zeros(x.size)
-        
-        for it in range(self.best_gmm.weights_.size):
-             y+=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.best_gmm.weights_[it]
-             y_it=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.dist_mod_chain.size*.25  * self.best_gmm.weights_[it]
-             ax1.plot(x,y_it, color=self.colors[it])
-             
-        y*=self.dist_mod_chain.size*.25
-        ax1.plot(x, y, 'k--', linewidth=1.5)
+#            # Plot an ellipse to show the Gaussian component            
+#            
+#            v, w = linalg.eigh(self.best_gmm._get_covars()[it])
+#            
+#            angle = np.arctan2(w[0][1], w[0][0])
+#            angle = 180 * angle / np.pi  # convert to degrees
+#            v *= 4
+#            ell = mpl.patches.Ellipse(self.best_gmm.means_[it], v[0], v[1], 180 + angle, ec=self.colors[it], fc='none', lw=3)
+#            ell.set_clip_box(ax1.bbox)
+#            ell.set_alpha(.5)
+#            ax1.add_artist(ell)
+#        plt.show()
+#        
+#    def compare_MCMC_hist(self):
+#        fig=plt.figure()
+#        ax1=fig.add_subplot(111) 
+#        
+#        bins=np.arange(8.,17.5, 0.25)
+#        
+#        ax1.hist(self.dist_mod_chain, bins, histtype='step', ec='k')
+#        
+#        x=np.arange(np.min(self.dist_mod_chain), np.max(self.dist_mod_chain), 0.1)
+#        y=np.zeros(x.size)
+#        
+#        for it in range(self.best_gmm.weights_.size):
+#             y+=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.best_gmm.weights_[it]
+#             y_it=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.dist_mod_chain.size*.25  * self.best_gmm.weights_[it]
+#             ax1.plot(x,y_it, color=self.colors[it])
+#             
+#        y*=self.dist_mod_chain.size*.25
+#        ax1.plot(x, y, 'k--', linewidth=1.5)
 
-        
-        plt.show()
+#        
+#        plt.show()
         
 
 
