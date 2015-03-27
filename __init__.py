@@ -136,9 +136,9 @@ class star_posterior:
         guess_set=np.array(guess_set)
         
         iso_objs=self.isochrones.query(guess_set[:,0], guess_set[:,1], guess_set[:,2])
-        guess_set[:,4]=np.log( ((self.mag[self.init_bands[0]]-self.mag[self.init_bands[1]])
+        guess_set[:,4]=np.log(np.maximum(0.007, ((self.mag[self.init_bands[0]]-self.mag[self.init_bands[1]])
                             -(iso_objs.abs_mag[self.init_bands[0]]-iso_objs.abs_mag[self.init_bands[1]])) 
-                            /(iso_objs.AX1[self.init_bands[0]][np.arange(guess_set.shape[0]),11]-iso_objs.AX1[self.init_bands[1]][np.arange(guess_set.shape[0]),11]) )
+                            /(iso_objs.AX1[self.init_bands[0]][np.arange(guess_set.shape[0]),11]-iso_objs.AX1[self.init_bands[1]][np.arange(guess_set.shape[0]),11]) ) )
         guess_set[:,3]=self.mag[self.init_bands[0]] - (iso_objs.AX1[self.init_bands[0]][np.arange(guess_set.shape[0]),11]*guess_set[:,4]
                             +iso_objs.AX2[self.init_bands[0]][np.arange(guess_set.shape[0]),11]*guess_set[:,4]*guess_set[:,4]+iso_objs.abs_mag[self.init_bands[0]])
     
