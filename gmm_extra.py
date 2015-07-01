@@ -20,7 +20,13 @@ class MeanCov_GMM(sk_m.GMM):
     
         X_modified = (X - X_mean[np.newaxis,:]) 
         X_covar=np.dot(X_modified.T,X_modified)/(X_modified.shape[0])
-        X_covar_L=np.linalg.cholesky(X_covar)
+        
+        try:
+            X_covar_L=np.linalg.cholesky(X_covar)
+        except np.linalg.linalg.LinAlgError:
+            print "CHOLESKY FACTORISATION FAILED"
+            print "PROCEEDING ASSUMING IDENTITY COVARIANCE"
+            X_covar_L=np.eye(X_covar.shape[0])
         X_covar_invL=np.linalg.solve(X_covar_L,np.eye(X_covar.shape[0]))        
         X_modified = np.dot(X_covar_invL, X_modified.T).T
         
