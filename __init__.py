@@ -227,9 +227,9 @@ class star_posterior:
         self.itnum_chain=np.zeros(chain_length)            
             
             
-    def emcee_run(self, iterations=10000, thin=10, burn_in=2000, N_walkers=50, prune=True, prune_plot=False, verbose_chain=True):
+    def emcee_run(self, iterations=10000, thin=10, burn_in=2000, N_walkers=50, prune=True, verbose_chain=True):
         """ emcee_run(iterations=10000, thin=10, burn_in=2000,
-                      N_walkers=50, prune=True, prune_plot=False,
+                      N_walkers=50, prune=True,
                       verbose_chain=True)
 
             Runs the emcee based inference of the posterior.
@@ -252,9 +252,6 @@ class star_posterior:
                 'lost' walkers is performed at the end of burn-in.
                 These walkers are then dropped back onto 
                 randomly chosen 'good' walkers.
-            prune_plot : bool, optional
-                Produce a diagnostic plot showing what has 
-                happened during the pruning.
             verbose_chain : bool, optional
                 Provides the option to store the state of a 
                 greater variety of parameters in the chain.
@@ -276,23 +273,6 @@ class star_posterior:
             dbscan.fit(sampler.flatchain[:,1:2])
             labels=dbscan.labels_.astype(np.int)
             
-#            if prune_plot:
-
-#                fig=plt.figure()
-#                ax1=fig.add_subplot(221)
-#                
-#                
-#                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-#                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
-#                ax1.set_xlim(right=3.5, left=4.5)                 
-#                ax1.set_ylim(bottom=5., top=2.)
-#                
-#                ax1=fig.add_subplot(223)
-#                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-#                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
-#                ax1.set_xlim(right=3.5, left=4.5)                                   
-
-            
             median_ln_prob=np.median(sampler.flatlnprobability)
             cl_list=[]
             weights_list=[]
@@ -307,22 +287,6 @@ class star_posterior:
                 index=int( np.random.uniform()*len(cl_list[cluster]) )
                 pos[i,:]=cl_list[cluster].data[index,:]
                 
-#            if prune_plot:       
-#                ax1=fig.add_subplot(222)
-#                
-#                
-#                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-#                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
-#                ax1.set_xlim(right=3.5, left=4.5)                 
-#                ax1.set_ylim(bottom=5., top=2.)                               
-#                
-#                ax1=fig.add_subplot(224)
-#                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-#                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
-#                ax1.set_xlim(right=3.5, left=4.5)                
-#                
-#                plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.6)                
-#                plt.savefig("prune.pdf")
             
             sampler.reset()
 
@@ -457,9 +421,9 @@ class star_posterior:
         self.itnum_chain=np.zeros(chain_length)            
             
             
-    def emcee_ES_run(self, iterations=10000, thin=10, burn_in=2000, N_temps=4, N_walkers=12, prune=True, prune_plot=False, verbose_chain=True):
+    def emcee_ES_run(self, iterations=10000, thin=10, burn_in=2000, N_temps=4, N_walkers=12, prune=True, verbose_chain=True):
         """ emcee_run(iterations=10000, thin=10, burn_in=2000,
-                      N_walkers=50, prune=True, prune_plot=False,
+                      N_walkers=50, prune=True,
                       verbose_chain=True)
 
             Runs the emcee based inference of the posterior using
@@ -483,9 +447,6 @@ class star_posterior:
                 'lost' walkers is performed at the end of burn-in.
                 These walkers are then dropped back onto 
                 randomly chosen 'good' walkers.
-            prune_plot : bool, optional
-                Produce a diagnostic plot showing what has 
-                happened during the pruning.
             verbose_chain : bool, optional
                 Provides the option to store the state of a 
                 greater variety of parameters in the chain.
@@ -506,23 +467,6 @@ class star_posterior:
             dbscan.fit(sampler.flatchain[:,1:2])
             labels=dbscan.labels_.astype(np.int)
             
-#            if prune_plot:
-
-#                fig=plt.figure()
-#                ax1=fig.add_subplot(221)
-#                
-#                
-#                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-#                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
-#                ax1.set_xlim(right=3.5, left=4.5)                 
-#                ax1.set_ylim(bottom=5., top=2.)
-#                
-#                ax1=fig.add_subplot(223)
-#                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-#                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
-#                ax1.set_xlim(right=3.5, left=4.5)                                   
-
-            
             median_ln_prob=np.median(sampler.flatlnprobability)
             cl_list=[]
             weights_list=[]
@@ -536,23 +480,6 @@ class star_posterior:
                 cluster=np.random.choice(np.max(labels)+1, p=weights_list/np.sum(weights_list))
                 index=int( np.random.uniform()*len(cl_list[cluster]) )
                 pos[i,:]=cl_list[cluster].data[index,:]
-                
-#            if prune_plot:       
-#                ax1=fig.add_subplot(222)
-#                
-#                
-#                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-#                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
-#                ax1.set_xlim(right=3.5, left=4.5)                 
-#                ax1.set_ylim(bottom=5., top=2.)                               
-#                
-#                ax1=fig.add_subplot(224)
-#                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-#                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
-#                ax1.set_xlim(right=3.5, left=4.5)                
-#                
-#                plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.6)                
-#                plt.savefig("prune.pdf")
             
             sampler.reset()
 
@@ -672,21 +599,6 @@ class star_posterior:
                 
     # ==============================================================                        
     # Auxilary functions
-    
-#   # 
-#   
-#   def plot_MCMCsample(self):
-#       """ plot_MCMCsample()
-#
-#            Plot the MCMC sample on the ln(s) ln(A) plane
-#            on the screen.
-#        """
-#
-#        fig=plt.figure()
-#        ax1=fig.add_subplot(111)
-#        
-#        ax1.scatter(self.dist_mod_chain, self.logA_chain, marker='.')
-#        plt.show()
 
         
     def chain_dump(self, filename):
@@ -722,63 +634,6 @@ class star_posterior:
 
 
     
-#    def plot_MCMCsample_gaussians(self):
-#        """plot_MCMCsample_gaussians()
-#
-#            Plot MCMC sample overlaid with gaussian fit 
-#            in (distance modulus, ln extinction) space 
-#            to the screen.
-#        """
-
-#        fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
-#        Y_=self.best_gmm.predict(fit_points)
-#        
-
-#    
-#        fig=plt.figure()
-#        ax1=fig.add_subplot(111)
-#        
-#        for it in range(self.best_gmm.weights_.size):
-#            ax1.scatter(fit_points[Y_==it,0], fit_points[Y_==it,1], marker='.', color=self.colors[it])
-
-#            # Plot an ellipse to show the Gaussian component            
-#            
-#            v, w = linalg.eigh(self.best_gmm._get_covars()[it])
-#            
-#            angle = np.arctan2(w[0][1], w[0][0])
-#            angle = 180 * angle / np.pi  # convert to degrees
-#            v *= 4
-#            ell = mpl.patches.Ellipse(self.best_gmm.means_[it], v[0], v[1], 180 + angle, ec=self.colors[it], fc='none', lw=3)
-#            ell.set_clip_box(ax1.bbox)
-#            ell.set_alpha(.5)
-#            ax1.add_artist(ell)
-#        plt.show()
-#        
-#    def compare_MCMC_hist(self):
-#        fig=plt.figure()
-#        ax1=fig.add_subplot(111) 
-#        
-#        bins=np.arange(8.,17.5, 0.25)
-#        
-#        ax1.hist(self.dist_mod_chain, bins, histtype='step', ec='k')
-#        
-#        x=np.arange(np.min(self.dist_mod_chain), np.max(self.dist_mod_chain), 0.1)
-#        y=np.zeros(x.size)
-#        
-#        for it in range(self.best_gmm.weights_.size):
-#             y+=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.best_gmm.weights_[it]
-#             y_it=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.dist_mod_chain.size*.25  * self.best_gmm.weights_[it]
-#             ax1.plot(x,y_it, color=self.colors[it])
-#             
-#        y*=self.dist_mod_chain.size*.25
-#        ax1.plot(x, y, 'k--', linewidth=1.5)
-
-#        
-#        plt.show()
-        
-
-
-
 class posterior_cluster:
     """ A class to store clusters in posterior space
     """
