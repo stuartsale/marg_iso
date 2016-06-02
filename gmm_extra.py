@@ -10,11 +10,14 @@ class MeanCov_GMM(sk_m.GMM):
     identity covariance in fit(), then transforms means and
     covariances found back to original coordinate system.
     
-    All functions and parameters are the same as sklearn.mixture.GMM
+    All functions and parameters are the same as 
+    'sklearn.mixture.GMM', from which this class inherits.
     """     
 
        
     def fit(self,X):
+        """ See 'sklearn.mixture.GMM.fit'
+        """
         
         X_mean = np.mean(X, axis=0)
     

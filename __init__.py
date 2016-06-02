@@ -53,13 +53,61 @@ def emcee_prob(params, star):
                 
                
 
-# Class to contain star's data, chain, etc            
-
 class star_posterior:
+
+    """ This is a class to claculate and contain the marginal 
+        posterior distribution on a star's distance modulus, 
+        ln extinction and extinction law, i.e. p(s,lnA,R|D).
+
+        The class employs a special, vectorised version of emcee
+        to sample from the posterior. Marginalisation over Teff,
+        logg and metallicity is performed by simply ignoring these
+        values in the chain.
+    """
+
 
     # init function
     
-    def __init__(self, l, b, mag_in, d_mag_in, isochrones=None, isochrone_file=None, init_bands=None):
+    def __init__(self, l, b, mag_in, d_mag_in, isochrones=None, 
+                isochrone_file=None, init_bands=None):
+        """ __init__(l, b, mag_in, d_mag_in, isochrones=None, 
+                     isochrone_file=None, init_bands=None)
+
+            Initialise a star_posterior object, giving it the 
+            on-sky position of the star and some photometry 
+            (with uncertainties).
+
+            Parameters
+            ----------
+            l : float
+                The Galactic Longitude of the star.
+            b : float
+                The Galactic lattitude of the star
+            mag_in : dict
+                The photometry of the star, where the band label is
+                the key and the magnitude is the value.
+            d_mag_in : dict
+                The photometric uncertainties, where the band label 
+                is the key and the uncertainty is the value.
+            isochrones : isolib.iso_grid_tefflogg, optional
+                A set of isochrones in ([Fe/H], Teff, logg) space.
+            isochrones_file : string, optional
+                The location of a file that contains isochrones
+                that can be read in by isolib for use.
+            init_bands : list, optional
+                A (sub-)set of the observed photometric bands
+                which are used to make an initial guess at the 
+                parameters of the star. Cannot contain bands that
+                are not in mag_in.
+            
+            Notes
+            -----
+            For a list of vaild photometric bands see <INSERT 
+            ADDRESS>.
+
+            Either isochrones or isochrone_file must be provided.
+            Otherwise the class will have no ischrone information.
+        """
 
     
         self.colors = np.array([x for x in 'bgrcmybgrcmybgrcmybgrcmy'])
@@ -97,6 +145,17 @@ class star_posterior:
     # Functions to work with emcee sampler
     
     def emcee_init(self, N_walkers, chain_length):
+        """ emcee_init(N_walkers, chain_length)
+
+            Initialises the emcee walkers.
+
+            Parameters
+            ----------
+            N_walkers : int
+                The number of walkers to be used.
+            chain_length: int
+                The length of the MCMC chain
+        """
     
         self.start_params=np.zeros([N_walkers,6])
     
@@ -170,6 +229,39 @@ class star_posterior:
             
             
     def emcee_run(self, iterations=10000, thin=10, burn_in=2000, N_walkers=50, prune=True, prune_plot=False, verbose_chain=True):
+        """ emcee_run(iterations=10000, thin=10, burn_in=2000,
+                      N_walkers=50, prune=True, prune_plot=False,
+                      verbose_chain=True)
+
+            Runs the emcee based inference of the posterior.
+
+            Parameters
+            ----------
+            iterations : int, optional
+                The number of iterations of emcee that will be 
+                performed.
+            thin : int, optional
+                A thinning factor that results in only 1 in 
+                every *thin* iterations being stored to the chain.
+            burn_in : int, optinal
+                Sets the length of the burn-in, during which
+                nothing is retained to the chain.
+            N_walkers : int, optinal
+                The number of walkers to be used.
+            prune : bool, optional
+                Determines whether a pruning of obviously
+                'lost' walkers is performed at the end of burn-in.
+                These walkers are then dropped back onto 
+                randomly chosen 'good' walkers.
+            prune_plot : bool, optional
+                Produce a diagnostic plot showing what has 
+                happened during the pruning.
+            verbose_chain : bool, optional
+                Provides the option to store the state of a 
+                greater variety of parameters in the chain.
+
+        """
+        
         self.verbose_chain=verbose_chain
     
         self.emcee_init(N_walkers, (iterations-burn_in)/thin*N_walkers)
@@ -281,6 +373,18 @@ class star_posterior:
         
         
     def emcee_ES_init(self, N_temps, N_walkers, chain_length):
+        """ emcee_ES_init(N_walkers, chain_length)
+
+            Initialises the emcee walkers for the ensemble 
+            sampler.
+
+            Parameters
+            ----------
+            N_walkers : int
+                The number of walkers to be used.
+            chain_length: int
+                The length of the MCMC chain
+        """
     
         self.start_params=np.zeros([N_temps, N_walkers,6])
     
@@ -355,6 +459,39 @@ class star_posterior:
             
             
     def emcee_ES_run(self, iterations=10000, thin=10, burn_in=2000, N_temps=4, N_walkers=12, prune=True, prune_plot=False, verbose_chain=True):
+        """ emcee_run(iterations=10000, thin=10, burn_in=2000,
+                      N_walkers=50, prune=True, prune_plot=False,
+                      verbose_chain=True)
+
+            Runs the emcee based inference of the posterior using
+            the ensemble sampler.
+
+            Parameters
+            ----------
+            iterations : int, optional
+                The number of iterations of emcee that will be 
+                performed.
+            thin : int, optional
+                A thinning factor that results in only 1 in 
+                every *thin* iterations being stored to the chain.
+            burn_in : int, optinal
+                Sets the length of the burn-in, during which
+                nothing is retained to the chain.
+            N_walkers : int, optinal
+                The number of walkers to be used.
+            prune : bool, optional
+                Determines whether a pruning of obviously
+                'lost' walkers is performed at the end of burn-in.
+                These walkers are then dropped back onto 
+                randomly chosen 'good' walkers.
+            prune_plot : bool, optional
+                Produce a diagnostic plot showing what has 
+                happened during the pruning.
+            verbose_chain : bool, optional
+                Provides the option to store the state of a 
+                greater variety of parameters in the chain.
+
+        """
         self.verbose_chain=verbose_chain
     
         self.emcee_ES_init(N_temps, N_walkers,  (iterations-burn_in)/thin*N_walkers )
@@ -464,6 +601,26 @@ class star_posterior:
     # Fit Gaussians
     
     def gmm_fit(self, max_components=10):
+
+        """ gmm_fit(max_components=10)
+
+            Fit a Gaussian mixture model to the (marginalised)
+            MCMC chain in (disance_moduls, ln extinction, 
+            extinction law) space.
+
+            Parameters
+            __________
+            max_components, int, optional
+                The maximum size of the GMM (in terms of 
+                number of components) that will be fit.
+
+            Notes
+            _____
+            Uses the Bayes Information Criterion (BIC) to 
+            select a number of componets, looking for a 
+            good fit, whilst peanalising models with more 
+            parameters.
+        """
     
         if self.MCMC_run:
             fit_points=np.array([self.dist_mod_chain, self.logA_chain, self.RV_chain]).T
@@ -480,6 +637,21 @@ class star_posterior:
                     print n_components, gmm.bic(fit_points), np.sort(gmm.weights_)
                     
     def gmm_sample(self, filename=None, num_samples=None):
+        """ gmm_sample(filename=None, num_samples=None)
+
+            Sample from the Gaussian mixture model that has
+            been fit to the data.
+
+            Parameters
+            ----------
+            filename : string, optional
+                A file to which the samples will be written
+            num_samples : int, optional
+                The number of samples tha will be drawn. If 
+                None, the number of samples matches the length
+                of the MCMC chain.
+        """
+
         if self.best_gmm:
             if num_samples==None:
                 num_samples=self.prob_chain.size
@@ -502,18 +674,34 @@ class star_posterior:
     # ==============================================================                        
     # Auxilary functions
     
-    # plot the MCMC sample on the ln(s) ln(A) plane
+    # 
     
     def plot_MCMCsample(self):
+        """ plot_MCMCsample()
+
+            Plot the MCMC sample on the ln(s) ln(A) plane
+            on the screen.
+        """
+
         fig=plt.figure()
         ax1=fig.add_subplot(111)
         
         ax1.scatter(self.dist_mod_chain, self.logA_chain, marker='.')
         plt.show()
 
-    # dump chain to text file
+
         
     def chain_dump(self, filename):
+        """ chain_dum(filename)
+
+            Dump the MCMC chain to a text file
+
+            Parameters
+            ----------
+            filename : string
+                The file to which the chain will be written.
+        """
+
         X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, 
                                 self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.accept_chain]
         header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\taccept"
@@ -526,9 +714,16 @@ class star_posterior:
         np.savetxt(filename, X, header=header_txt )
     
 
-    # plot MCMC sample overlaid with gaussian fit in dist_mod x log(A) space
+
     
     def plot_MCMCsample_gaussians(self):
+        """plot_MCMCsample_gaussians()
+
+            Plot MCMC sample overlaid with gaussian fit 
+            in (distance modulus, ln extinction) space 
+            to the screen.
+        """
+
         fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
         Y_=self.best_gmm.predict(fit_points)
         
@@ -554,6 +749,13 @@ class star_posterior:
         plt.show()
         
     def compare_MCMC_hist(self):
+        """ compare_MCMC_hist()
+
+            Produce a plot that compares the GMM 
+            approximation to the estimated posterior, 
+            showing the contribution of each component.
+        """
+
         fig=plt.figure()
         ax1=fig.add_subplot(111) 
         
@@ -577,9 +779,10 @@ class star_posterior:
         
 
 
-# class to store clusters in posterior space
 
 class posterior_cluster:
+    """ A class to store clusters in posterior space
+    """
 
     def __init__(self, data, probs):
         self.data=data
