@@ -1,16 +1,18 @@
 # Import stuff
 
+from __future__ import print_function, division
+import emcee
+import math
 import numpy as np
-import iso_lib as il
+from scipy import linalg
 import sklearn as sk
 import sklearn.cluster as sk_c
 import sklearn.mixture as sk_m
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import emcee
-import math
 
-from scipy import linalg
+import iso_lib as il
 from gmm_extra import MeanCov_GMM
 
 
