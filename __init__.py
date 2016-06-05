@@ -26,25 +26,29 @@ def emcee_prob(params, star):
     params[5,R_out_of_bounds]=3.1
     
     try:
-        a_out_of_bounds=params[4]<-5
-        params[4,a_out_of_bounds]=-5
+        a_out_of_bounds = params[4]<-5
+        params[4,a_out_of_bounds] = -5
         
-        A=np.exp(params[4])
-        dist=np.power(10., params[3]/5.+1.)    
-        R_gal=np.sqrt( 8000*8000+np.power(dist*star.cosb,2)-2*8000*dist*star.cosb*star.cosl )
-        prob= np.log(iso_obj.Jac) -2.3*np.log(iso_obj.Mi) + 2.3026*iso_obj.logage  \
-                -np.power(params[0]+(R_gal-8000.)*0.00006,2)/(2*0.04) 
+        A = np.exp(params[4])
+        dist = np.power(10., params[3]/5.+1.)    
+        R_gal = np.sqrt(8000*8000+np.power(dist*star.cosb,2)
+                        -2*8000*dist*star.cosb*star.cosl)
+        prob = (np.log(iso_obj.Jac)-2.3*np.log(iso_obj.Mi) 
+                +2.3026*iso_obj.logage
+                -np.power(params[0]+(R_gal-8000.)*0.00006,2)/(2*0.04))
                 
         for band in star.mag.keys():
-            prob-= np.power(star.mag[band]-(iso_obj.abs_mag[band]+params[3]+iso_obj.AX(band, A, params[5]) ) 
-                    ,2)/(2*star.d_mag[band]*star.d_mag[band])
+            prob -= np.power(star.mag[band]-(iso_obj.abs_mag[band]
+                             +params[3]+iso_obj.AX(band, A, params[5])) 
+                             ,2)/(2*star.d_mag[band]*star.d_mag[band])
 
-        prob[iso_obj.Jac==0]=-np.inf
-        prob[np.logical_or(params[5]<2.05, params[5]>5.05)]=-np.inf
-        prob[params[4]<-5]=-np.inf
+        prob[iso_obj.Jac==0] = -np.inf
+        prob[np.logical_or(params[5]<2.05, params[5]>5.05)] = -np.inf
+        prob[params[4]<-5] = -np.inf
         
-        all_out_of_bounds=np.logical_or(R_out_of_bounds, a_out_of_bounds)
-        prob[all_out_of_bounds]=-np.inf
+        all_out_of_bounds = np.logical_or(R_out_of_bounds, 
+                                          a_out_of_bounds)
+        prob[all_out_of_bounds] = -np.inf
         
         return prob
         
@@ -116,28 +120,30 @@ class star_posterior:
         self.l=np.radians(l)
         self.b=np.radians(b)
 
-        self.sinl=np.sin(self.l)
-        self.cosl=np.cos(self.l)
-        self.sinb=np.sin(self.b)
-        self.cosb=np.cos(self.b)
+        self.sinl = np.sin(self.l)
+        self.cosl = np.cos(self.l)
+        self.sinb = np.sin(self.b)
+        self.cosb = np.cos(self.b)
     
-        self.mag=mag_in
-        self.d_mag=d_mag_in
+        self.mag = mag_in
+        self.d_mag = d_mag_in
         
         if init_bands is None:
-            self.init_bands=self.mag.keys()[:2]
+            self.init_bands = self.mag.keys()[:2]
         else:
-            self.init_bands=init_bands
+            self.init_bands = init_bands
         
         if isochrones is None:
             if isochrone_file is not None:
-                isochrones=il.iso_grid_tefflogg(isochrone_file, bands=self.mag.keys())
+                isochrones=il.iso_grid_tefflogg(isochrone_file,
+                                                bands=self.mag.keys())
             else:
-                raise IOError("Either an isochrone must be provided or a filename for one given")
-        self.isochrones=isochrones
+                raise IOError("Either an isochrone must be provided "
+                              "or a filename for one given")
+        self.isochrones = isochrones
             
-        self.MCMC_run=False 
-        self.best_gmm=None       
+        self.MCMC_run = False 
+        self.best_gmm = None       
         
                   
                     
@@ -192,43 +198,63 @@ class star_posterior:
         guess_set.append([0.,3.600 ,1.20 ,0.,0.,3.1]);	#K5III
         guess_set.append([0.,3.580 ,0.30 ,0.,0.,3.1]);	#K5III
         
-        guess_set=np.array(guess_set)
+        guess_set = np.array(guess_set)
         
-        iso_objs=self.isochrones.query(guess_set[:,0], guess_set[:,1], guess_set[:,2])
-        guess_set[:,4]=np.log(np.maximum(0.007, ((self.mag[self.init_bands[0]]-self.mag[self.init_bands[1]])
-                            -(iso_objs.abs_mag[self.init_bands[0]]-iso_objs.abs_mag[self.init_bands[1]])) 
-                            /(iso_objs.AX1[self.init_bands[0]][np.arange(guess_set.shape[0]),11]-iso_objs.AX1[self.init_bands[1]][np.arange(guess_set.shape[0]),11]) ) )
-        guess_set[:,3]=self.mag[self.init_bands[0]] - (iso_objs.AX1[self.init_bands[0]][np.arange(guess_set.shape[0]),11]*guess_set[:,4]
-                            +iso_objs.AX2[self.init_bands[0]][np.arange(guess_set.shape[0]),11]*guess_set[:,4]*guess_set[:,4]+iso_objs.abs_mag[self.init_bands[0]])
+        iso_objs = self.isochrones.query(guess_set[:,0], 
+                                         guess_set[:,1], 
+                                         guess_set[:,2])
+
+        guess_set[:,4] = np.log(np.maximum(0.007, 
+                            ((self.mag[self.init_bands[0]]
+                              -self.mag[self.init_bands[1]])
+                             -(iso_objs.abs_mag[self.init_bands[0]]
+                             -iso_objs.abs_mag[self.init_bands[1]]))
+                             /(iso_objs.AX1[self.init_bands[0]]\
+                                  [np.arange(guess_set.shape[0]),11]
+                               -iso_objs.AX1[self.init_bands[1]]\
+                                  [np.arange(guess_set.shape[0]),11])))
+
+        guess_set[:,3] = (self.mag[self.init_bands[0]]
+                          -(iso_objs.AX1[self.init_bands[0]]\
+                                   [np.arange(guess_set.shape[0]),11]
+                            *guess_set[:,4]
+                            +iso_objs.AX2[self.init_bands[0]]\
+                                   [np.arange(guess_set.shape[0]),11]
+                            *guess_set[:,4]*guess_set[:,4]
+                            +iso_objs.abs_mag[self.init_bands[0]]))
     
-        metal_min=sorted(self.isochrones.metal_dict.keys())[0]
-        metal_max=sorted(self.isochrones.metal_dict.keys())[-1]
+        metal_min = sorted(self.isochrones.metal_dict.keys())[0]
+        metal_max = sorted(self.isochrones.metal_dict.keys())[-1]
             
         for it in range(N_walkers):
-            self.start_params[it,:]=guess_set[int(np.random.uniform()*len(guess_set))]
-            self.start_params[it,0]=metal_min+(metal_max-metal_min)*np.random.uniform()
-            self.start_params[it,5]=2.9+0.4*np.random.uniform()
+            self.start_params[it,:] = (
+                   guess_set[int(np.random.uniform()*len(guess_set))])
+            self.start_params[it,0] = (
+                  metal_min+(metal_max-metal_min)*np.random.uniform())
+            self.start_params[it,5] = 2.9+0.4*np.random.uniform()
             
-        self.Teff_chain=np.zeros(chain_length)
-        self.logg_chain=np.zeros(chain_length)
-        self.feh_chain=np.zeros(chain_length)
-        self.dist_mod_chain=np.zeros(chain_length)
-        self.logA_chain=np.zeros(chain_length)
-        self.RV_chain=np.zeros(chain_length)        
+        self.Teff_chain = np.zeros(chain_length)
+        self.logg_chain = np.zeros(chain_length)
+        self.feh_chain = np.zeros(chain_length)
+        self.dist_mod_chain = np.zeros(chain_length)
+        self.logA_chain = np.zeros(chain_length)
+        self.RV_chain = np.zeros(chain_length)        
 
-        self.prob_chain=np.zeros(chain_length)
-        self.prior_chain=np.zeros(chain_length)
-        self.Jac_chain=np.zeros(chain_length)
-        self.accept_chain=np.zeros(chain_length)
+        self.prob_chain = np.zeros(chain_length)
+        self.prior_chain = np.zeros(chain_length)
+        self.Jac_chain = np.zeros(chain_length)
+        self.accept_chain = np.zeros(chain_length)
 
         self.photom_chain={}
         for band in self.mag:
-            self.photom_chain[band]=np.zeros(chain_length)
+            self.photom_chain[band] = np.zeros(chain_length)
         
-        self.itnum_chain=np.zeros(chain_length)            
+        self.itnum_chain = np.zeros(chain_length)            
             
             
-    def emcee_run(self, iterations=10000, thin=10, burn_in=2000, N_walkers=50, prune=True, prune_plot=False, verbose_chain=True):
+    def emcee_run(self, iterations=10000, thin=10, burn_in=2000,
+                  N_walkers=50, prune=True, prune_plot=False,
+                  verbose_chain=True):
         """ emcee_run(iterations=10000, thin=10, burn_in=2000,
                       N_walkers=50, prune=True, prune_plot=False,
                       verbose_chain=True)
@@ -264,62 +290,85 @@ class star_posterior:
         
         self.verbose_chain=verbose_chain
     
-        self.emcee_init(N_walkers, (iterations-burn_in)/thin*N_walkers)
+        self.emcee_init(N_walkers,
+                        (iterations-burn_in)/thin*N_walkers)
     
-        sampler = emcee.EnsembleSampler(N_walkers, 6, emcee_prob, args=[self], a=1.5)
+        sampler = emcee.EnsembleSampler(N_walkers, 6, emcee_prob, 
+                                        args=[self], a=1.5)
         
-        pos, last_prob, state = sampler.run_mcmc(self.start_params, burn_in)     # Burn-in
+        # Burn-in
+        pos, last_prob, state = sampler.run_mcmc(self.start_params,
+                                                 burn_in)
         sampler.reset()
  
         if prune:        
             dbscan = sk_c.DBSCAN(eps=0.05)
-            pos, last_prob, state = sampler.run_mcmc(pos, 100, rstate0=state, lnprob0=last_prob)     # pruning set
+            pos, last_prob, state = sampler.run_mcmc(pos, 100, 
+                                                     rstate0=state,
+                                                     lnprob0=last_prob)     # pruning set
             dbscan.fit(sampler.flatchain[:,1:2])
-            labels=dbscan.labels_.astype(np.int)
+            labels = dbscan.labels_.astype(np.int)
             
             if prune_plot:
 
-                fig=plt.figure()
-                ax1=fig.add_subplot(221)
+                fig = plt.figure()
+                ax1 = fig.add_subplot(221)
                 
                 
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
+                ax1.scatter(sampler.flatchain[:,1],
+                            sampler.flatchain[:,2],
+                            color='0.5',s=1)
+                ax1.scatter(pos[:,1], pos[:,2], 
+                            color=self.colors[labels].tolist(),s=3)  
                 ax1.set_xlim(right=3.5, left=4.5)                 
                 ax1.set_ylim(bottom=5., top=2.)
                 
                 ax1=fig.add_subplot(223)
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+                ax1.scatter(sampler.flatchain[:,1], 
+                            sampler.flatlnprobability, color='0.5',
+                            s=1)
+                ax1.scatter(pos[:,1], last_prob,
+                            color=self.colors[labels].tolist(), s=3) 
                 ax1.set_xlim(right=3.5, left=4.5)                                   
 
             
             median_ln_prob=np.median(sampler.flatlnprobability)
-            cl_list=[]
-            weights_list=[]
-            weights_sum=0
+            cl_list = []
+            weights_list = []
+            weights_sum = 0
             for cl_it in range(np.max(labels)+1):
-                cl_list.append(posterior_cluster(sampler.flatchain[labels==cl_it,:], sampler.flatlnprobability[labels==cl_it]-median_ln_prob))
-                weights_sum+= cl_list[-1].weight
+                cl_list.append(posterior_cluster(
+                            sampler.flatchain[labels==cl_it,:],
+                            sampler.flatlnprobability[labels==cl_it]
+                            -median_ln_prob))
+                weights_sum += cl_list[-1].weight
                 weights_list.append(cl_list[-1].weight)
             
             for i in range(N_walkers):
-                cluster=np.random.choice(np.max(labels)+1, p=weights_list/np.sum(weights_list))
-                index=int( np.random.uniform()*len(cl_list[cluster]) )
-                pos[i,:]=cl_list[cluster].data[index,:]
+                cluster = np.random.choice(np.max(labels)+1,
+                                                  p=(weights_list
+                                                /np.sum(weights_list))
+                index = int(np.random.uniform()
+                            *len(cl_list[cluster]))
+                pos[i,:] = cl_list[cluster].data[index,:]
                 
             if prune_plot:       
-                ax1=fig.add_subplot(222)
+                ax1 = fig.add_subplot(222)
                 
                 
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
+                ax1.scatter(sampler.flatchain[:,1],
+                            sampler.flatchain[:,2], color='0.5',s=1)
+                ax1.scatter(pos[:,1], pos[:,2], 
+                            color=self.colors[labels].tolist(), s=3) 
                 ax1.set_xlim(right=3.5, left=4.5)                 
                 ax1.set_ylim(bottom=5., top=2.)                               
                 
-                ax1=fig.add_subplot(224)
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+                ax1 = fig.add_subplot(224)
+                ax1.scatter(sampler.flatchain[:,1],
+                            sampler.flatlnprobability, color='0.5',
+                            s=1)
+                ax1.scatter(pos[:,1], last_prob,
+                            color=self.colors[labels].tolist(), s=3) 
                 ax1.set_xlim(right=3.5, left=4.5)                
                 
                 plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.6)                
@@ -329,43 +378,55 @@ class star_posterior:
 
         if self.verbose_chain:
         
-            for i, (pos, prob, rstate) in enumerate(sampler.sample(pos, iterations=(iterations-burn_in), storechain=False)):      # proper run
+            for i, (pos, prob, rstate) in enumerate(
+                  sampler.sample(pos ,iterations=(iterations-burn_in),
+                  storechain=False)):      # proper run
             
                 if i%thin==0:
+
+                    start = i/thin*N_walkers
+                    end = (i/thin+1)*N_walkers
                 
-                    self.feh_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,0]
-                    self.Teff_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,1]
-                    self.logg_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,2]
-                    self.dist_mod_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,3]
-                    self.logA_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,4]
-                    self.RV_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[:,5]                
+                    self.feh_chain[start:end] = pos[:,0]
+                    self.Teff_chain[start:end] = pos[:,1]
+                    self.logg_chain[start:end] = pos[:,2]
+                    self.dist_mod_chain[start:end] = pos[:,3]
+                    self.logA_chain[start:end] = pos[:,4]
+                    self.RV_chain[start:end] = pos[:,5]                
                     
-                    self.prob_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]= prob
+                    self.prob_chain[start:end] = prob
                     
-                    self.itnum_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=  i
+                    self.itnum_chain[start:end] = i
                     
-                    self.accept_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=sampler.acceptance_fraction
+                    self.accept_chain[start:end] = sampler.\
+                                                   acceptance_fraction
                     
-                    iso_obj=self.isochrones.query(pos[:,0], pos[:,1], pos[:,2])
+                    iso_obj = self.isochrones.query(pos[:,0],
+                                                    pos[:,1],
+                                                    pos[:,2])
 #                    A=np.exp(pos[:,4])
                     
                     for band in self.mag:
-                        self.photom_chain[band][i/thin*N_walkers:(i/thin+1)*N_walkers]=iso_obj.abs_mag[band]
+                        self.photom_chain[start:end] = (
+                                                iso_obj.abs_mag[band])
                         
         else:
-             pos, last_prob, state = sampler.run_mcmc(pos, iterations-burn_in, thin=thin)   
+             pos, last_prob, state = sampler.run_mcmc(pos, 
+                                                      iterations
+                                                        -burn_in,
+                                                      thin=thin)   
              
-             self.feh_chain=sampler.flatchain[:,0]     
-             self.Teff_chain=sampler.flatchain[:,1]     
-             self.logg_chain=sampler.flatchain[:,2]     
-             self.dist_mod_chain=sampler.flatchain[:,3]     
-             self.logA_chain=sampler.flatchain[:,4]    
-             self.RV_chain=sampler.flatchain[:,5]                                                                       
+             self.feh_chain = sampler.flatchain[:,0]     
+             self.Teff_chain = sampler.flatchain[:,1]     
+             self.logg_chain = sampler.flatchain[:,2]     
+             self.dist_mod_chain = sampler.flatchain[:,3]     
+             self.logA_chain = sampler.flatchain[:,4]    
+             self.RV_chain = sampler.flatchain[:,5]                                                                       
              
-             self.prob_chain=sampler.flatlnprobability
+             self.prob_chain = sampler.flatlnprobability
 
                         
-        self.MCMC_run=True
+        self.MCMC_run = True
         
     # ==============================================================
     # Functions to work with emcee sampler
@@ -421,44 +482,65 @@ class star_posterior:
         guess_set.append([0.,3.600 ,1.20 ,0.,0.,3.1]);	#K5III
         guess_set.append([0.,3.580 ,0.30 ,0.,0.,3.1]);	#K5III
         
-        guess_set=np.array(guess_set)
+        guess_set = np.array(guess_set)
         
-        iso_objs=self.isochrones.query(guess_set[:,0], guess_set[:,1], guess_set[:,2])
-        guess_set[:,4]=np.log( ((self.mag[self.init_bands[0]]-self.mag[self.init_bands[1]])
-                            -(iso_objs.abs_mag[self.init_bands[0]]-iso_objs.abs_mag[self.init_bands[1]])) 
-                            /(iso_objs.AX1[self.init_bands[0]][np.arange(guess_set.shape[0]),11]-iso_objs.AX1[self.init_bands[1]][np.arange(guess_set.shape[0]),11]) )
-        guess_set[:,3]=self.mag[self.init_bands[0]] - (iso_objs.AX1[self.init_bands[0]][np.arange(guess_set.shape[0]),11]*guess_set[:,4]
-                            +iso_objs.AX2[self.init_bands[0]][np.arange(guess_set.shape[0]),11]*guess_set[:,4]*guess_set[:,4]+iso_objs.abs_mag[self.init_bands[0]])
+        iso_objs = self.isochrones.query(guess_set[:,0],
+                                         guess_set[:,1], 
+                                         guess_set[:,2])
+        guess_set[:,4] = np.log(((self.mag[self.init_bands[0]]
+                                 -self.mag[self.init_bands[1]])
+                               -(iso_objs.abs_mag[self.init_bands[0]]
+                               -iso_objs.abs_mag[self.init_bands[1]])) 
+                            /(iso_objs.AX1[self.init_bands[0]]\
+                                [np.arange(guess_set.shape[0]),11]
+                              -iso_objs.AX1[self.init_bands[1]]\
+                                [np.arange(guess_set.shape[0]),11]) )
+
+        guess_set[:,3] = (self.mag[self.init_bands[0]]
+                          -(iso_objs.AX1[self.init_bands[0]]\
+                                [np.arange(guess_set.shape[0]),11]
+                            *guess_set[:,4]
+                            +iso_objs.AX2[self.init_bands[0]]\
+                                [np.arange(guess_set.shape[0]),11]
+                            *guess_set[:,4]*guess_set[:,4]
+                            +iso_objs.abs_mag[self.init_bands[0]])
     
-        metal_min=sorted(self.isochrones.metal_dict.keys())[0]
-        metal_max=sorted(self.isochrones.metal_dict.keys())[-1]
+        metal_min = sorted(self.isochrones.metal_dict.keys())[0]
+        metal_max = sorted(self.isochrones.metal_dict.keys())[-1]
         
         for it1 in range(N_temps):    
             for it2 in range(N_walkers):
-                self.start_params[it1,it2,:]=guess_set[int(np.random.uniform()*len(guess_set))]
-                self.start_params[it1,it2,0]=metal_min+(metal_max-metal_min)*np.random.uniform()
-                self.start_params[it1,it2,5]=2.9+0.4*np.random.uniform()
+                self.start_params[it1,it2,:] = (guess_set\
+                                        [int(np.random.uniform()
+                                         *len(guess_set))])
+                self.start_params[it1,it2,0] = (metal_min
+                                                +(metal_max-metal_min)
+                                                *np.random.uniform())
+                self.start_params[it1,it2,5] = (2.9+0.4
+                                                *np.random.uniform())
             
-        self.Teff_chain=np.zeros(chain_length)
-        self.logg_chain=np.zeros(chain_length)
-        self.feh_chain=np.zeros(chain_length)
-        self.dist_mod_chain=np.zeros(chain_length)
-        self.logA_chain=np.zeros(chain_length)
-        self.RV_chain=np.zeros(chain_length)        
+        self.Teff_chain = np.zeros(chain_length)
+        self.logg_chain = np.zeros(chain_length)
+        self.feh_chain = np.zeros(chain_length)
+        self.dist_mod_chain = np.zeros(chain_length)
+        self.logA_chain = np.zeros(chain_length)
+        self.RV_chain = np.zeros(chain_length)        
 
-        self.prob_chain=np.zeros(chain_length)
-        self.prior_chain=np.zeros(chain_length)
-        self.Jac_chain=np.zeros(chain_length)
-        self.accept_chain=np.zeros(chain_length)
+        self.prob_chain = np.zeros(chain_length)
+        self.prior_chain = np.zeros(chain_length)
+        self.Jac_chain = np.zeros(chain_length)
+        self.accept_chain = np.zeros(chain_length)
 
-        self.photom_chain={}
+        self.photom_chain = {}
         for band in self.mag:
-            self.photom_chain[band]=np.zeros(chain_length)
+            self.photom_chain[band] = np.zeros(chain_length)
         
-        self.itnum_chain=np.zeros(chain_length)            
+        self.itnum_chain = np.zeros(chain_length)            
             
             
-    def emcee_ES_run(self, iterations=10000, thin=10, burn_in=2000, N_temps=4, N_walkers=12, prune=True, prune_plot=False, verbose_chain=True):
+    def emcee_ES_run(self, iterations=10000, thin=10, burn_in=2000,
+                     N_temps=4, N_walkers=12, prune=True,
+                     prune_plot=False, verbose_chain=True):
         """ emcee_run(iterations=10000, thin=10, burn_in=2000,
                       N_walkers=50, prune=True, prune_plot=False,
                       verbose_chain=True)
@@ -492,64 +574,85 @@ class star_posterior:
                 greater variety of parameters in the chain.
 
         """
-        self.verbose_chain=verbose_chain
+        self.verbose_chain = verbose_chain
     
-        self.emcee_ES_init(N_temps, N_walkers,  (iterations-burn_in)/thin*N_walkers )
+        self.emcee_ES_init(N_temps, N_walkers, 
+                           (iterations-burn_in)/thin*N_walkers)
     
-        sampler = emcee.PTSampler(N_temps, N_walkers, 6, emcee_prob, lambda(x) : np.zeros(x.shape[1]), loglargs=[self], a=1.5)
+        sampler = emcee.PTSampler(N_temps, N_walkers, 6, emcee_prob,
+                                  lambda(x) : np.zeros(x.shape[1]), 
+                                  loglargs=[self], a=1.5)
         
-        pos, last_prob, state = sampler.run_mcmc(self.start_params, burn_in)     # Burn-in
+        pos, last_prob, state = sampler.run_mcmc(self.start_params,
+                                                 burn_in)     # Burn-in
         sampler.reset()
  
         if prune:        
             dbscan = sk_c.DBSCAN(eps=0.05)
-            pos, last_prob, state = sampler.run_mcmc(pos, 100, rstate0=state, lnprob0=last_prob)     # pruning set
+            pos, last_prob, state = sampler.run_mcmc(pos, 100,
+                                                     rstate0=state,
+                                                     lnprob0=last_prob)     # pruning set
             dbscan.fit(sampler.flatchain[:,1:2])
-            labels=dbscan.labels_.astype(np.int)
+            labels = dbscan.labels_.astype(np.int)
             
             if prune_plot:
 
-                fig=plt.figure()
-                ax1=fig.add_subplot(221)
+                fig = plt.figure()
+                ax1 = fig.add_subplot(221)
                 
                 
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3)  
+                ax1.scatter(sampler.flatchain[:,1],
+                            sampler.flatchain[:,2], color='0.5',s=1)
+                ax1.scatter(pos[:,1], pos[:,2],
+                            color=self.colors[labels].tolist(),s=3)  
                 ax1.set_xlim(right=3.5, left=4.5)                 
                 ax1.set_ylim(bottom=5., top=2.)
                 
-                ax1=fig.add_subplot(223)
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+                ax1 = fig.add_subplot(223)
+                ax1.scatter(sampler.flatchain[:,1], 
+                            sampler.flatlnprobability, color='0.5',
+                            s=1)
+                ax1.scatter(pos[:,1], last_prob,
+                            color=self.colors[labels].tolist(), s=3) 
                 ax1.set_xlim(right=3.5, left=4.5)                                   
 
             
-            median_ln_prob=np.median(sampler.flatlnprobability)
-            cl_list=[]
-            weights_list=[]
-            weights_sum=0
+            median_ln_prob = np.median(sampler.flatlnprobability)
+            cl_list = []
+            weights_list = []
+            weights_sum = 0
             for cl_it in range(np.max(labels)+1):
-                cl_list.append(posterior_cluster(sampler.flatchain[labels==cl_it,:], sampler.flatlnprobability[labels==cl_it]-median_ln_prob))
-                weights_sum+= cl_list[-1].weight
+                cl_list.append(posterior_cluster(
+                            sampler.flatchain[labels==cl_it,:],
+                            sampler.flatlnprobability[labels==cl_it]
+                            -median_ln_prob))
+                weights_sum += cl_list[-1].weight
                 weights_list.append(cl_list[-1].weight)
             
             for i in range(N_walkers):
-                cluster=np.random.choice(np.max(labels)+1, p=weights_list/np.sum(weights_list))
-                index=int( np.random.uniform()*len(cl_list[cluster]) )
-                pos[i,:]=cl_list[cluster].data[index,:]
+                cluster = np.random.choice(np.max(labels)+1, 
+                                           p=weights_list
+                                              /np.sum(weights_list))
+                index = int(np.random.uniform()*len(cl_list[cluster]))
+                pos[i,:] = cl_list[cluster].data[index,:]
                 
             if prune_plot:       
-                ax1=fig.add_subplot(222)
+                ax1 = fig.add_subplot(222)
                 
                 
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatchain[:,2], color='0.5',s=1)
-                ax1.scatter(pos[:,1], pos[:,2], color=self.colors[labels].tolist(),s=3) 
+                ax1.scatter(sampler.flatchain[:,1],
+                            sampler.flatchain[:,2], color='0.5', s=1)
+                ax1.scatter(pos[:,1], pos[:,2], 
+                            color=self.colors[labels].tolist(), s=3)
                 ax1.set_xlim(right=3.5, left=4.5)                 
                 ax1.set_ylim(bottom=5., top=2.)                               
                 
                 ax1=fig.add_subplot(224)
-                ax1.scatter(sampler.flatchain[:,1], sampler.flatlnprobability, color='0.5',s=1)
-                ax1.scatter(pos[:,1], last_prob, color=self.colors[labels].tolist(),s=3) 
+                ax1.scatter(sampler.flatchain[:,1], 
+                            sampler.flatlnprobability, color='0.5',
+                            s=1)
+                ax1.scatter(pos[:,1], last_prob, 
+                            color=self.colors[labels].tolist(), s=3)
                 ax1.set_xlim(right=3.5, left=4.5)                
                 
                 plt.tight_layout(pad=0.2, w_pad=0.1, h_pad=0.6)                
@@ -559,40 +662,52 @@ class star_posterior:
 
         if self.verbose_chain:
         
-            for i, (pos, prob, rstate) in enumerate(sampler.sample(pos, iterations=(iterations-burn_in), storechain=False)):      # proper run
+            for i, (pos, prob, rstate) in enumerate(
+                  sampler.sample(pos, iterations=(iterations-burn_in),
+                  storechain=False)):      # proper run
             
                 if i%thin==0:
+
+                    start = i/thin*N_walkers
+                    end = (i/thin+1)*N_walkers
                 
-                    self.feh_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,0]
-                    self.Teff_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,1]
-                    self.logg_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,2]
-                    self.dist_mod_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,3]
-                    self.logA_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,4]
-                    self.RV_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=pos[0,:,5]                
+                    self.feh_chain[start:end] = pos[0,:,0]
+                    self.Teff_chain[start:end] = pos[0,:,1]
+                    self.logg_chain[start:end] = pos[0,:,2]
+                    self.dist_mod_chain[start:end] = pos[0,:,3]
+                    self.logA_chain[start:end] = pos[0,:,4]
+                    self.RV_chain[start:end] = pos[0,:,5]                
                     
-                    self.prob_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]= prob[0,:]
+                    self.prob_chain[start:end] = prob[0,:]
                     
-                    self.itnum_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=  i
+                    self.itnum_chain[start:end] =  i
                     
-                    self.accept_chain[i/thin*N_walkers:(i/thin+1)*N_walkers]=sampler.acceptance_fraction[0,:]
+                    self.accept_chain[start:end] = (
+                                sampler.acceptance_fraction[0,:])
                     
-                    iso_obj=self.isochrones.query(pos[0,:,0], pos[0,:,1], pos[0,:,2])
+                    iso_obj = self.isochrones.query(pos[0,:,0],
+                                                    pos[0,:,1],
+                                                    pos[0,:,2])
 #                    A=np.exp(pos[:,4])
                     
                     for band in self.mag:
-                        self.photom_chain[band][i/thin*N_walkers:(i/thin+1)*N_walkers]=iso_obj.abs_mag[band]
+                        self.photom_chain[band][start:end] = (
+                                            iso_obj.abs_mag[band])
                         
         else:
-             pos, last_prob, state = sampler.run_mcmc(pos, iterations-burn_in, thin=thin)   
+             pos, last_prob, state = sampler.run_mcmc(pos, 
+                                                      iterations
+                                                      -burn_in,
+                                                      thin=thin)   
              
-             self.feh_chain=sampler.flatchain[:,0]     
-             self.Teff_chain=sampler.flatchain[:,1]     
-             self.logg_chain=sampler.flatchain[:,2]     
-             self.dist_mod_chain=sampler.flatchain[:,3]     
-             self.logA_chain=sampler.flatchain[:,4]    
-             self.RV_chain=sampler.flatchain[:,5]                                                                       
+             self.feh_chain = sampler.flatchain[:,0]     
+             self.Teff_chain = sampler.flatchain[:,1]     
+             self.logg_chain = sampler.flatchain[:,2]     
+             self.dist_mod_chain = sampler.flatchain[:,3]     
+             self.logA_chain = sampler.flatchain[:,4]    
+             self.RV_chain = sampler.flatchain[:,5]                                                                       
              
-             self.prob_chain=sampler.flatlnprobability
+             self.prob_chain = sampler.flatlnprobability
 
                         
         self.MCMC_run=True        
@@ -623,18 +738,23 @@ class star_posterior:
         """
     
         if self.MCMC_run:
-            fit_points=np.array([self.dist_mod_chain, self.logA_chain, self.RV_chain]).T
+            fit_points = np.array([self.dist_mod_chain,
+                                   self.logA_chain, self.RV_chain]).T
 
-            best_bic=+np.infty
+            best_bic = +np.infty
             for n_components in range(1,max_components+1):
-                gmm = MeanCov_GMM(n_components=n_components, covariance_type='full',min_covar=0.0001)
+                gmm = MeanCov_GMM(n_components=n_components,
+                                  covariance_type='full',
+                                  min_covar=0.0001)
                 gmm.fit(fit_points)
                 if gmm.bic(fit_points)<best_bic-10:
-                    best_bic=gmm.bic(fit_points)
-                    self.best_gmm=gmm
-                    print n_components, best_bic, np.sort(gmm.weights_), "*"
+                    best_bic = gmm.bic(fit_points)
+                    self.best_gmm = gmm
+                    print(n_components, best_bic, 
+                          np.sort(gmm.weights_), "*")
                 else:
-                    print n_components, gmm.bic(fit_points), np.sort(gmm.weights_)
+                    print(n_components, gmm.bic(fit_points),
+                          np.sort(gmm.weights_))
                     
     def gmm_sample(self, filename=None, num_samples=None):
         """ gmm_sample(filename=None, num_samples=None)
@@ -654,17 +774,21 @@ class star_posterior:
 
         if self.best_gmm:
             if num_samples==None:
-                num_samples=self.prob_chain.size
+                num_samples = self.prob_chain.size
                 
-            components=np.random.choice(self.best_gmm.weights_.size, p=self.best_gmm.weights_, size=num_samples)
+            components = np.random.choice(self.best_gmm.weights_.size,
+                                          p=self.best_gmm.weights_,
+                                          size=num_samples)
             
-            covar_roots=[]
+            covar_roots = []
             for covar in self.best_gmm._get_covars():
                 covar_roots.append(np.linalg.cholesky(covar))
             
-            self.gmm_sample=self.best_gmm.means_[components]  
+            self.gmm_sample = self.best_gmm.means_[components]  
             for it in range(components.size):
-                self.gmm_sample[it,:]+=np.dot(covar_roots[components[it]], np.random.normal(size=(2, 1) )).flatten()
+                self.gmm_sample[it,:] += np.dot(
+                            covar_roots[components[it]],
+                            np.random.normal(size=(2, 1))).flatten()
             
             if filename:
                 np.savetxt(filename, self.gmm_sample)
@@ -683,8 +807,8 @@ class star_posterior:
             on the screen.
         """
 
-        fig=plt.figure()
-        ax1=fig.add_subplot(111)
+        fig = plt.figure()
+        ax1 = fig.add_subplot(111)
         
         ax1.scatter(self.dist_mod_chain, self.logA_chain, marker='.')
         plt.show()
@@ -702,17 +826,19 @@ class star_posterior:
                 The file to which the chain will be written.
         """
 
-        X=[self.itnum_chain, self.Teff_chain, self.logg_chain, self.feh_chain, self.dist_mod_chain, self.logA_chain, 
-                                self.RV_chain, self.prob_chain, self.prior_chain, self.Jac_chain, self.accept_chain]
-        header_txt="N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\tprior\tJac\taccept"
+        X = [self.itnum_chain, self.Teff_chain, self.logg_chain,
+             self.feh_chain, self.dist_mod_chain, self.logA_chain,
+             self.RV_chain, self.prob_chain, self.prior_chain,
+             self.Jac_chain, self.accept_chain]
+        header_txt = "N\tTeff\tlogg\tfeh\tdist_mod\tlogA\tRV\tlike\t"
+                     "prior\tJac\taccept"
         for band in self.photom_chain:
             X.append(self.photom_chain[band])
-            header_txt+="\t{}".format(band)
-        X=np.array(X).T
-        header_txt+="\n"
+            header_txt += "\t{}".format(band)
+        X = np.array(X).T
+        header_txt += "\n"
 
-        np.savetxt(filename, X, header=header_txt )
-    
+        np.savetxt(filename, X, header=header_txt)   
 
 
     
@@ -724,16 +850,16 @@ class star_posterior:
             to the screen.
         """
 
-        fit_points=np.array([self.dist_mod_chain, self.logA_chain]).T
-        Y_=self.best_gmm.predict(fit_points)
-        
-
-    
-        fig=plt.figure()
-        ax1=fig.add_subplot(111)
+        fit_points = np.array([self.dist_mod_chain,
+                               self.logA_chain]).T
+        Y_ = self.best_gmm.predict(fit_points)
+            
+        fig = plt.figure()
+        ax1 = fig.add_subplot(111)
         
         for it in range(self.best_gmm.weights_.size):
-            ax1.scatter(fit_points[Y_==it,0], fit_points[Y_==it,1], marker='.', color=self.colors[it])
+            ax1.scatter(fit_points[Y_==it,0], fit_points[Y_==it,1],
+                        marker='.', color=self.colors[it])
 
             # Plot an ellipse to show the Gaussian component            
             
@@ -742,7 +868,10 @@ class star_posterior:
             angle = np.arctan2(w[0][1], w[0][0])
             angle = 180 * angle / np.pi  # convert to degrees
             v *= 4
-            ell = mpl.patches.Ellipse(self.best_gmm.means_[it], v[0], v[1], 180 + angle, ec=self.colors[it], fc='none', lw=3)
+            ell = mpl.patches.Ellipse(self.best_gmm.means_[it], v[0],
+                                      v[1], 180 + angle,
+                                      ec=self.colors[it], fc='none',
+                                      lw=3)
             ell.set_clip_box(ax1.bbox)
             ell.set_alpha(.5)
             ax1.add_artist(ell)
@@ -756,27 +885,33 @@ class star_posterior:
             showing the contribution of each component.
         """
 
-        fig=plt.figure()
-        ax1=fig.add_subplot(111) 
+        fig = plt.figure()
+        ax1 = fig.add_subplot(111) 
         
-        bins=np.arange(8.,17.5, 0.25)
+        bins = np.arange(8.,17.5, 0.25)
         
         ax1.hist(self.dist_mod_chain, bins, histtype='step', ec='k')
         
-        x=np.arange(np.min(self.dist_mod_chain), np.max(self.dist_mod_chain), 0.1)
-        y=np.zeros(x.size)
+        x = np.arange(np.min(self.dist_mod_chain),
+                      np.max(self.dist_mod_chain), 0.1)
+        y = np.zeros(x.size)
         
         for it in range(self.best_gmm.weights_.size):
-             y+=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.best_gmm.weights_[it]
-             y_it=1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0]) * np.exp(-np.power(x-self.best_gmm.means_[it][0],2)/(2*self.best_gmm._get_covars()[it][0,0]) ) * self.dist_mod_chain.size*.25  * self.best_gmm.weights_[it]
+             y += (1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0])
+                   *np.exp(-np.power(x-self.best_gmm.means_[it][0],2)
+                   /(2*self.best_gmm._get_covars()[it][0,0]) )
+                   *self.best_gmm.weights_[it])
+             y_it = (1/np.sqrt(2*np.pi*self.best_gmm._get_covars()[it][0,0])
+                     *np.exp(-np.power(x-self.best_gmm.means_[it][0],2)
+                     /(2*self.best_gmm._get_covars()[it][0,0]) )
+                     *self.dist_mod_chain.size*.25
+                     *self.best_gmm.weights_[it])
              ax1.plot(x,y_it, color=self.colors[it])
              
-        y*=self.dist_mod_chain.size*.25
+        y *= self.dist_mod_chain.size*.25
         ax1.plot(x, y, 'k--', linewidth=1.5)
 
-        
         plt.show()
-        
 
 
 
@@ -785,8 +920,8 @@ class posterior_cluster:
     """
 
     def __init__(self, data, probs):
-        self.data=data
-        self.probs=probs
+        self.data = data
+        self.probs = probs
         
         self.set_weight()
 
@@ -796,7 +931,9 @@ class posterior_cluster:
         
     def set_weight(self, weight=None):
         if weight:
-            self.weight=weight
+            self.weight = weight
         else:
-            self.weight=np.mean(np.exp(self.probs))*max(np.std(self.data[:,1]),0.01)*max(np.std(self.data[:,2]),0.01)
+            self.weight = (np.mean(np.exp(self.probs))
+                                   *max(np.std(self.data[:,1]),0.01)
+                                   *max(np.std(self.data[:,2]),0.01))
                      
