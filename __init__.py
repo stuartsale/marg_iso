@@ -9,8 +9,13 @@ import sklearn as sk
 import sklearn.cluster as sk_c
 import sklearn.mixture as sk_m
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+# Attempt to import matplotlib
+try:
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    mpl_present = True
+except ImportError:
+    mpl_present = False
 
 import iso_lib as il
 from gmm_extra import MeanCov_GMM
@@ -339,7 +344,7 @@ class star_posterior:
             dbscan.fit(sampler.flatchain[:,1:2])
             labels = dbscan.labels_.astype(np.int)
             
-            if prune_plot:
+            if prune_plot and mpl_present:
 
                 fig = plt.figure()
                 ax1 = fig.add_subplot(221)
@@ -382,7 +387,7 @@ class star_posterior:
                             *len(cl_list[cluster]))
                 pos[i,:] = cl_list[cluster].data[index,:]
                 
-            if prune_plot:       
+            if prune_plot and mpl_present:       
                 ax1 = fig.add_subplot(222)
                 
                 
@@ -625,7 +630,7 @@ class star_posterior:
             dbscan.fit(sampler.flatchain[:,1:2])
             labels = dbscan.labels_.astype(np.int)
             
-            if prune_plot:
+            if prune_plot and mpl_present:
 
                 fig = plt.figure()
                 ax1 = fig.add_subplot(221)
@@ -666,7 +671,7 @@ class star_posterior:
                 index = int(np.random.uniform()*len(cl_list[cluster]))
                 pos[i,:] = cl_list[cluster].data[index,:]
                 
-            if prune_plot:       
+            if prune_plot and mpl_present:       
                 ax1 = fig.add_subplot(222)
                 
                 
@@ -837,6 +842,10 @@ class star_posterior:
             on the screen.
         """
 
+        # Raise an error if matplotlib not available
+        if not mpl_present:
+            raise ImportError
+
         fig = plt.figure()
         ax1 = fig.add_subplot(111)
         
@@ -880,6 +889,10 @@ class star_posterior:
             to the screen.
         """
 
+        # Raise an error if matplotlib not available
+        if not mpl_present:
+            raise ImportError
+
         fit_points = np.array([self.dist_mod_chain,
                                self.logA_chain]).T
         Y_ = self.best_gmm.predict(fit_points)
@@ -914,6 +927,10 @@ class star_posterior:
             approximation to the estimated posterior, 
             showing the contribution of each component.
         """
+
+        # Raise an error if matplotlib not available
+        if not mpl_present:
+            raise ImportError
 
         fig = plt.figure()
         ax1 = fig.add_subplot(111) 
