@@ -16,17 +16,45 @@ from gmm_extra import MeanCov_GMM
 
 
 def emcee_prob(params, star):
+    """ emcee_prob(params, star)
+
+        Finds the likelihood of a set of stellar params,
+        for a given star_posterior object (which contains
+        the observations and on-sky position of the star).
+
+        If ([M/H], T_eff, log(g)) is outside the region covered
+        by star's iso_obj the a log probability of -infinity is
+        returned. 
+
+        Parameters
+        ----------
+        params : ndarray(float)
+            The stellar parameters for which we desire the
+            likelihood. Its contents are (in order): 
+            [M/H], T_eff, log(g), distance, A_4000
+            R_5495.
+        star : star_posterior
+            The object that contains the observations, on-sky
+            position (as (l,b)) and other information about 
+            the star in question.
+
+        Returns
+        -------
+        prob : float
+            The log likelihood of the parameter set params
+            for the star described by star.
+    """
             
 #    try:
-    iso_obj=star.isochrones.query(params[0], params[1], params[2])
+    iso_obj = star.isochrones.query(params[0], params[1], params[2])
 #    except IndexError:
 #        return -np.inf+np.zeros(params.shape[1])
         
-    R_out_of_bounds=np.logical_or(params[5]<2.05, params[5]>5.05)
-    params[5,R_out_of_bounds]=3.1
+    R_out_of_bounds = np.logical_or(params[5]<2.05, params[5]>5.05)
+    params[5,R_out_of_bounds] = 3.1
     
     try:
-        a_out_of_bounds = params[4]<-5
+        a_out_of_bounds = params[4] < -5
         params[4,a_out_of_bounds] = -5
         
         A = np.exp(params[4])
@@ -920,6 +948,19 @@ class posterior_cluster:
     """
 
     def __init__(self, data, probs):
+        """ __init__(data, probs)
+
+            Initialise a cluster in posterior space.
+
+            Parameters
+            ----------
+            data : ndarray(float)
+                The coordinates of the data points associated 
+                with the cluster
+            probs : ndarray(float)
+                The probabilities of each of the data points
+        """
+            
         self.data = data
         self.probs = probs
         
@@ -927,9 +968,31 @@ class posterior_cluster:
 
        
     def __len__(self):
+        """ __len__()
+
+            Gives the number of points in the cluster
+
+            Returns
+            -------
+            The number of points in the cluster
+        """
         return self.data.shape[0]
         
     def set_weight(self, weight=None):
+        """ set_weight(weight=None)
+
+            Sets the probability weight of the cluster. If no
+            weight is provided, the weight is set to the mean 
+            of the probabilities of each point in the cluster
+            multiplied by the standard deviation of the cluster
+            member positions (with a floor).
+
+            Parameters
+            ----------
+            weight : float
+                The probaility weight of the cluster
+        """
+
         if weight:
             self.weight = weight
         else:
