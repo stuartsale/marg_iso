@@ -1,4 +1,4 @@
-marg-iso - A program to estimate P(s,A|data) for stars
+marg-iso - A program to estimate p(s,A,R|data) for stars
 ============================================================
 
 Author - Stuart Sale
@@ -6,7 +6,17 @@ Author - Stuart Sale
 Intro
 ------------
 
-This is python based module to estimate the posterior P(s,A,R|data) for stars by fitting a Gaussian mixture model
+This is python based module to estimate the posterior p(s,A,R|data) 
+for stars by fitting a Gaussian mixture model, where s is the 
+distance, A the (monochromatic) extinction and R parametrises the 
+extinction law.
+
+This software accompanies Sale & Magorrian (2015) 
+http://adsabs.harvard.edu/abs/2015MNRAS.448.1738S .
+
+The posteriors p(s,A,R|data) can be used in the Gaussian Process
+based 3d extinction method of Sale & Magorrian (2014) 
+http://adsabs.harvard.edu/abs/2014MNRAS.445..256S .
 
 
 Comments
