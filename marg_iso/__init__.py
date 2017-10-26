@@ -18,7 +18,7 @@ except ImportError:
     mpl_present = False
 
 import isolib as il
-from gmm_extra import MeanCov_GMM
+from plot_util import posterior_quadplot
 
 
 def emcee_prob(params, star):
@@ -396,7 +396,6 @@ class star_posterior:
                 plt.savefig("prune.pdf")
 
             sampler.reset()
-
 
         if self.verbose_chain:
 
