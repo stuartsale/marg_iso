@@ -1,3 +1,7 @@
+""" This module contains probability functions for use when
+    inferring the (distance modulus, log-extinction, R_V).
+"""
+
 import numpy as np
 
 
