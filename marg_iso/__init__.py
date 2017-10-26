@@ -17,7 +17,7 @@ try:
 except ImportError:
     mpl_present = False
 
-import iso_lib as il
+import isolib as il
 from gmm_extra import MeanCov_GMM
 
 
@@ -318,7 +318,7 @@ class star_posterior:
         self.verbose_chain = verbose_chain
 
         self.emcee_init(N_walkers,
-                        (iterations-burn_in)/thin*N_walkers)
+                        int((iterations-burn_in)/thin*N_walkers))
 
         sampler = emcee.EnsembleSampler(N_walkers, 6, emcee_prob, args=[self],
                                         a=1.5)
@@ -397,6 +397,7 @@ class star_posterior:
 
             sampler.reset()
 
+
         if self.verbose_chain:
 
             # proper run
@@ -406,8 +407,8 @@ class star_posterior:
 
                 if i % thin == 0:
 
-                    start = i/thin*N_walkers
-                    end = (i/thin+1)*N_walkers
+                    start = int(i/thin*N_walkers)
+                    end = int((i/thin+1)*N_walkers)
 
                     self.feh_chain[start:end] = pos[:, 0]
                     self.Teff_chain[start:end] = pos[:, 1]
@@ -428,7 +429,7 @@ class star_posterior:
 #                    A=np.exp(pos[:,4])
 
                     for band in self.mag:
-                        self.photom_chain[start:end] = (
+                        self.photom_chain[band][start:end] = (
                                                 iso_obj.abs_mag[band])
 
         else:
@@ -592,7 +593,7 @@ class star_posterior:
         self.verbose_chain = verbose_chain
 
         self.emcee_ES_init(N_temps, N_walkers,
-                           (iterations-burn_in)/thin*N_walkers)
+                           int((iterations-burn_in)/thin*N_walkers))
 
         sampler = emcee.PTSampler(N_temps, N_walkers, 6, emcee_prob,
                                   lambda(x): np.zeros(x.shape[1]),
@@ -682,8 +683,8 @@ class star_posterior:
 
                 if i % thin == 0:
 
-                    start = i/thin*N_walkers
-                    end = (i/thin+1)*N_walkers
+                    start = int(i/thin*N_walkers)
+                    end = int((i/thin+1)*N_walkers)
 
                     self.feh_chain[start:end] = pos[0, :, 0]
                     self.Teff_chain[start:end] = pos[0, :, 1]
@@ -726,7 +727,7 @@ class star_posterior:
     # ==============================================================
     # Fit Gaussians
 
-    def gmm_fit(self, max_components=10):
+    def gmm_fit(self, max_components=10, verbose=False):
 
         """ gmm_fit(max_components=10)
 
@@ -739,6 +740,8 @@ class star_posterior:
             max_components, int, optional
                 The maximum size of the GMM (in terms of
                 number of components) that will be fit.
+            verbose : bool, optional
+                Controls the verbosity of the function
 
             Notes
             _____
@@ -752,20 +755,25 @@ class star_posterior:
             fit_points = np.array([self.dist_mod_chain,
                                    self.logA_chain, self.RV_chain]).T
 
+            # clean out any NaNs, infs, etc
+            fit_points = fit_points[np.all(np.isfinite(fit_points), axis=1)]
+
             best_bic = +np.infty
             for n_components in range(1, max_components+1):
-                gmm = MeanCov_GMM(n_components=n_components,
-                                  covariance_type='full',
-                                  min_covar=0.0001)
+                gmm = sk_m.GaussianMixture(n_components=n_components,
+                                           covariance_type='full',
+                                           reg_covar=0.0001)
                 gmm.fit(fit_points)
                 if gmm.bic(fit_points) < best_bic-10:
                     best_bic = gmm.bic(fit_points)
                     self.best_gmm = gmm
-                    print(n_components, best_bic,
-                          np.sort(gmm.weights_), "*")
+                    if verbose:
+                        print(n_components, best_bic, np.sort(gmm.weights_),
+                              "*")
                 else:
-                    print(n_components, gmm.bic(fit_points),
-                          np.sort(gmm.weights_))
+                    if verbose:
+                        print(n_components, gmm.bic(fit_points),
+                              np.sort(gmm.weights_))
 
     def gmm_sample(self, filename=None, num_samples=None):
         """ gmm_sample(filename=None, num_samples=None)
